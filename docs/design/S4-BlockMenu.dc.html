@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Noton · Block menu and Position and size</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0;background:#FBF9F4}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0}
+.menu{width:300px;background:#FFFEFB;border:1px solid #DAD3C6;border-radius:10px;padding:4px;box-shadow:0 12px 32px -6px rgba(33,30,26,.22);box-sizing:border-box}
+.mi{height:30px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:6px;width:100%;box-sizing:border-box;text-align:left}
+.mi span:first-of-type{flex-grow:1}
+.sc{font-family:'JetBrains Mono',monospace;font-size:11px;color:#5F584E}
+.msep{height:1px;background:#E4DDD0;margin:4px 6px}
+.hd{position:absolute;width:8px;height:8px;background:#FFFEFB;border:1.5px solid #B03D1A;box-sizing:border-box}
+.card{position:absolute;background:#FFFEFB;border:1px solid #DAD3C6;border-radius:8px;box-shadow:0 1px 3px rgba(33,30,26,.10)}
+.ch{height:30px;display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;border-bottom:1px solid #EFEAE1;color:#5F584E;font-size:12px}
+.lbl{font-size:11px;line-height:14px;font-weight:500;color:#5F584E;letter-spacing:.02em}
+.fld{display:flex;flex-direction:column;gap:4px}
+.inp{height:30px;box-sizing:border-box;display:flex;align-items:center;border:1px solid #8F877A;border-radius:6px;background:#FFFEFB;padding:0 8px;gap:6px}
+.inp input{width:100%;border:0;background:transparent;font-family:'JetBrains Mono',monospace;font-size:12px;color:#211E1A;outline:none}
+</style>
+</helmet>
+<div style="width: 1280px; height: 760px; position: relative; overflow: hidden; background: #FBF9F4; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 13px; line-height: 18px; color: #211E1A">
+
+<div style="position: absolute; left: 0; top: 0; width: 780px; height: 760px; background-image: radial-gradient(circle, #DDD5C6 1px, transparent 1.2px); background-size: 24px 24px; background-position: 12px 12px; border-right: 1px solid #E4DDD0">
+<div class="lbl" style="position: absolute; left: 32px; top: 24px">IMAGE BLOCK · ⋮ MENU OPEN (Shift F10 or the Menu key on a selected block)</div>
+
+<div style="position: absolute; left: 55px; top: 75px; width: 310px; height: 252px; border: 1px solid #B03D1A"></div>
+<div class="hd" style="left: 51px; top: 71px"></div><div class="hd" style="left: 361px; top: 71px"></div><div class="hd" style="left: 51px; top: 323px"></div><div class="hd" style="left: 361px; top: 323px"></div><div class="hd" style="left: 206px; top: 71px"></div><div class="hd" style="left: 206px; top: 323px"></div><div class="hd" style="left: 51px; top: 197px"></div><div class="hd" style="left: 361px; top: 197px"></div>
+<div class="card" style="left: 60px; top: 80px; width: 300px; box-shadow: 0 4px 12px -2px rgba(33,30,26,.14)">
+<div class="ch"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 7a2 2 0 1 0 0 4a2 2 0 1 0 0-4M21 15l-3-3a2 2 0 0 0-3 0L6 21"></path></svg><span style="flex-grow: 1">Image</span>
+<button aria-label="Block actions" aria-expanded="true" style="width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: #DFD8CA; color: #211E1A"><svg class="i" viewBox="0 0 24 24"><path d="M12 5h.01M12 12h.01M12 19h.01" style="stroke-width: 3"></path></svg></button></div>
+<div style="padding: 8px"><svg viewBox="0 0 284 170" role="img" aria-label="Photo du tableau blanc en fin de réunion, avec six post-it." style="display: block; width: 284px; height: 170px"><rect width="284" height="170" fill="#D9D3C7"></rect><rect x="14" y="12" width="256" height="138" rx="3" fill="#F7F6F2" stroke="#BDB5A6"></rect><rect x="30" y="26" width="46" height="40" fill="#F2D98B"></rect><rect x="86" y="30" width="46" height="40" fill="#F2D98B"></rect><rect x="150" y="24" width="46" height="40" fill="#B9D3EA"></rect><rect x="206" y="30" width="46" height="40" fill="#EFC0B4"></rect><rect x="40" y="84" width="46" height="40" fill="#B9D3EA"></rect><rect x="170" y="86" width="46" height="40" fill="#F2D98B"></rect></svg>
+<div class="lit" lang="fr" style="padding: 8px 4px 2px; font-size: 13px; font-style: italic; color: #5F584E">Tableau blanc, fin de séance</div></div>
+</div>
+
+<div role="menu" aria-label="Image block" class="menu" style="position: absolute; left: 340px; top: 112px">
+<button role="menuitem" class="mi" style="background: #E9E3D7; box-shadow: inset 0 0 0 2px #2456A6"><svg class="i" viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"></path></svg><span>Position and size…</span><span class="sc">Alt Enter</span></button>
+<button role="menuitem" class="mi"><svg class="i" viewBox="0 0 24 24"><path d="M5 3h14M18 13l-6-6-6 6M12 7v14"></path></svg><span>Bring to front</span><span class="sc">Ctrl Shift ]</span></button>
+<button role="menuitem" class="mi"><svg class="i" viewBox="0 0 24 24"><path d="M12 17V3M6 11l6 6 6-6M19 21H5"></path></svg><span>Send to back</span><span class="sc">Ctrl Shift [</span></button>
+<div class="msep"></div>
+<div class="lbl" style="padding: 4px 10px 2px">Reading order · 3 of 4</div>
+<button role="menuitem" class="mi"><svg class="i" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 19V5"></path></svg><span>Read earlier</span><span class="sc">Alt ↑</span></button>
+<button role="menuitem" class="mi"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg><span>Read later</span><span class="sc">Alt ↓</span></button>
+<div class="msep"></div>
+<button role="menuitem" class="mi"><svg class="i" viewBox="0 0 24 24"><path d="M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2zM4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"></path></svg><span>Duplicate</span><span class="sc">Ctrl D</span></button>
+<button role="menuitem" class="mi"><svg class="i" viewBox="0 0 24 24"><path d="M17 22h-1a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4h1M7 22h1a4 4 0 0 0 4-4v-1M7 2h1a4 4 0 0 1 4 4v1"></path></svg><span>Edit alt text…</span><span class="sc">F2</span></button>
+<div class="msep"></div>
+<button role="menuitem" class="mi" style="color: #B42318"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg><span>Move to trash</span><span class="sc" style="color: #B42318">Del</span></button>
+</div>
+
+<div class="lbl" style="position: absolute; left: 32px; top: 480px">SKETCH BLOCK · ONLY THE ITEMS THAT DIFFER</div>
+<div role="menu" aria-label="Sketch block, partial" class="menu" style="position: absolute; left: 32px; top: 504px; box-shadow: 0 4px 12px -2px rgba(33,30,26,.14)">
+<button role="menuitem" class="mi" style="font-weight: 600"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9M16.4 3.6a2.1 2.1 0 0 1 3 3L7.4 18.6 3 20l1.4-4.4Z"></path></svg><span>Draw</span><span class="sc">Enter</span></button>
+<button role="menuitem" class="mi"><svg class="i" viewBox="0 0 24 24"><path d="M17 22h-1a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4h1M7 22h1a4 4 0 0 0 4-4v-1M7 2h1a4 4 0 0 1 4 4v1"></path></svg><span>Rename / describe sketch…</span><span class="sc">F2</span></button>
+<div class="msep"></div>
+<div style="padding: 4px 10px 6px; font-size: 12px; line-height: 16px; color: #5F584E">Position, order, reading order, duplicate and trash are the same as above.</div>
+</div>
+
+<div class="lbl" style="position: absolute; left: 380px; top: 480px">TEXT BLOCK · ITEMS THAT DIFFER</div>
+<div role="menu" aria-label="Text block, partial" class="menu" style="position: absolute; left: 380px; top: 504px; box-shadow: 0 4px 12px -2px rgba(33,30,26,.14)">
+<button role="menuitem" class="mi" style="font-weight: 600"><svg class="i" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"></path></svg><span>Edit text</span><span class="sc">Enter</span></button>
+<button role="menuitem" class="mi"><svg class="i" viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"></path></svg><span>Position and width…</span><span class="sc">Alt Enter</span></button>
+<div style="padding: 0 10px 6px 36px; font-size: 12px; line-height: 16px; color: #5F584E">Label changes: text blocks have no height or rotation.</div>
+</div>
+</div>
+
+<div style="position: absolute; left: 780px; top: 0; width: 500px; height: 760px; background: #F3EFE7; padding: 24px 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+<div class="lbl">POSITION AND SIZE · Popover anchored to the ⋮ button, caret on</div>
+
+<div role="dialog" aria-label="Position and size" style="position: relative; width: 340px; background: #FFFEFB; border: 1px solid #DAD3C6; border-radius: 10px; box-shadow: 0 12px 32px -6px rgba(33,30,26,.22); padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; margin-top: 10px">
+<div style="position: absolute; left: 32px; top: -7px; width: 12px; height: 12px; background: #FFFEFB; border-left: 1px solid #DAD3C6; border-top: 1px solid #DAD3C6; transform: rotate(45deg)"></div>
+<div style="display: flex; align-items: center"><span style="font-weight: 600; flex-grow: 1">Position and size</span><span style="font-size: 12px; color: #5F584E">Image</span></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px">
+<label class="fld"><span class="lbl">X</span><span class="inp" style="border-color: #2456A6; box-shadow: 0 0 0 1px #2456A6"><input value="400"><span class="sc">px</span></span></label>
+<label class="fld"><span class="lbl">Y</span><span class="inp"><input value="300"><span class="sc">px</span></span></label>
+<label class="fld"><span class="lbl">Width</span><span class="inp"><input value="300"><span class="sc">px</span></span></label>
+<label class="fld"><span class="lbl">Height</span><span class="inp" style="background: #F6F2EA"><input value="252"><span class="sc">px</span></span></label>
+</div>
+<label style="display: flex; align-items: center; gap: 8px"><span style="width: 16px; height: 16px; border-radius: 4px; background: #B03D1A; display: inline-flex; align-items: center; justify-content: center; color: #FFFFFF"><svg class="i" viewBox="0 0 24 24" style="width: 12px; height: 12px; stroke-width: 3"><path d="M20 6 9 17l-5-5"></path></svg></span>Keep aspect ratio</label>
+<div style="font-size: 12px; line-height: 16px; color: #5F584E">Changes apply as you type. Enter or Esc closes; Ctrl Z undoes “move block”.</div>
+</div>
+
+<div class="lbl" style="margin-top: 12px">SAME POPOVER FOR A TEXT BLOCK</div>
+<div style="width: 340px; background: #FFFEFB; border: 1px solid #DAD3C6; border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; box-sizing: border-box">
+<label class="fld"><span class="lbl">X</span><span class="inp"><input value="32"><span class="sc">px</span></span></label>
+<label class="fld"><span class="lbl">Y</span><span class="inp"><input value="28"><span class="sc">px</span></span></label>
+<label class="fld"><span class="lbl">Width</span><span class="inp"><input value="340"><span class="sc">px</span></span></label>
+<div class="fld"><span class="lbl">Height</span><span style="height: 30px; display: flex; align-items: center; font-size: 12px; color: #5F584E">Follows content</span></div>
+</div>
+
+<div class="lbl" style="margin-top: 12px">KEYBOARD ON A SELECTED BLOCK</div>
+<div style="display: grid; grid-template-columns: 150px 1fr; gap: 6px 12px; font-size: 12px; line-height: 16px">
+<span class="sc">← ↑ → ↓</span><span>Nudge 1 px</span>
+<span class="sc">Shift + arrows</span><span>Nudge 24 px (one grid step)</span>
+<span class="sc">Ctrl Shift ← / →</span><span>Narrower / wider by 24 px</span>
+<span class="sc">Ctrl Shift ↑ / ↓</span><span>Shorter / taller (image, sketch)</span>
+<span class="sc">Tab / Shift Tab</span><span>Next / previous block in reading order</span>
+<span class="sc">Enter · Esc</span><span>Edit or draw · back to selection, then to none</span>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":760}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

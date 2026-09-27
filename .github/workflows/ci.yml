@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-FileCopyrightText: 2026 Cyril Jacquet
+# Adapted from Skribisto: native runners, real/mocks checks, aggregate gate.
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main, 'codex/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+jobs:
+  native:
+    name: Build and test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/install-linux-deps
+        if: runner.os == 'Linux'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - name: Resolve pinned source dependencies
+        run: python tools/bootstrap.py
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}
+      - run: cargo fmt --all --check
+      - run: cargo build --workspace --all-targets --locked
+      - run: cargo test --workspace --locked
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test -p noton-teksilo-ui --features mocks --locked
+      - run: cargo clippy -p noton-teksilo-ui --features mocks --all-targets --locked -- -D warnings
+      - name: Real UI through MCP
+        shell: bash
+        run: |
+          cargo build -p noton-teksilo-ui --locked
+          python tools/mcp_smoke.py target/debug/noton${{ runner.os == 'Windows' && '.exe' || '' }}
+          python tools/mcp_stories.py target/debug/noton${{ runner.os == 'Windows' && '.exe' || '' }} target/user-story-results
+      - run: python tools/check_locales.py
+      - name: Rust documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --no-deps --locked
+  ci:
+    name: CI
+    needs: [native]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: test '${{ needs.native.result }}' = success

@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Noton · Canvas view (Carnet)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F3EFE7}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0}
+.ib{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;color:#3D3831;flex:none}
+.ib.sm{width:24px;height:24px}
+.ib.on{background:#F7E4DA;color:#7E2A11;box-shadow:inset 0 0 0 1px #D9A58D}
+.tb{height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border-radius:6px;white-space:nowrap}
+.sep{width:1px;height:18px;background:#DAD3C6;flex:none}
+.kbd{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:14px;padding:1px 5px;border-radius:4px;background:#ECE7DD;color:#5F584E;border:1px solid #DAD3C6}
+.row{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:6px}
+.nrow{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:8px}
+.card{position:absolute;background:#FFFEFB;border:1px solid #DAD3C6;border-radius:8px;box-shadow:0 1px 3px rgba(33,30,26,.10)}
+.ch{height:30px;display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;border-bottom:1px solid #EFEAE1;color:#5F584E;font-size:12px;line-height:16px}
+.lit{font-family:'Literata',Georgia,serif}
+.h{position:absolute;width:8px;height:8px;background:#FFFEFB;border:1.5px solid #B03D1A;box-sizing:border-box}
+</style>
+</helmet>
+<div style="width: 1280px; height: 850px; position: relative; overflow: hidden; background: #F3EFE7; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 13px; line-height: 18px; color: #211E1A; display: flex; flex-direction: column">
+
+<header style="height: 40px; flex: none; display: flex; align-items: center; gap: 8px; padding-left: 6px; border-bottom: 1px solid #E4DDD0">
+<button class="ib" aria-label="Menu">
+<svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+</button>
+<div style="display: flex; align-items: center; gap: 8px">
+<svg viewBox="0 0 20 20" style="width: 18px; height: 18px; flex: none"><rect x="3" y="2" width="14" height="16" rx="3" fill="#B03D1A"></rect><path d="M7 6.5h6M7 10h6M7 13.5h3.5" stroke="#FFFEFB" stroke-width="1.6" stroke-linecap="round"></path></svg>
+<span style="font-weight: 600">Noton</span>
+<span style="color: #8F877A">/</span>
+<span style="color: #5F584E">Carnets 2026</span>
+</div>
+<div style="flex-grow: 1; display: flex; justify-content: center">
+<label style="width: 340px; height: 28px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; background: #ECE7DD; border-radius: 6px; color: #5F584E">
+<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<input aria-label="Search library" placeholder="Search library" style="flex-grow: 1; border: 0; background: transparent; font: inherit; color: #211E1A; outline: none; min-width: 0">
+<span class="kbd">Ctrl Shift F</span>
+</label>
+</div>
+<div style="display: flex; align-items: stretch; height: 40px">
+<button aria-label="Minimize" style="width: 46px; display: flex; align-items: center; justify-content: center; color: #3D3831"><svg class="i" viewBox="0 0 24 24"><path d="M6 12h12"></path></svg></button>
+<button aria-label="Maximize" style="width: 46px; display: flex; align-items: center; justify-content: center; color: #3D3831"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"></rect></svg></button>
+<button aria-label="Close" style="width: 46px; display: flex; align-items: center; justify-content: center; color: #3D3831"><svg class="i" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"></path></svg></button>
+</div>
+</header>
+
+<div style="flex-grow: 1; display: flex; min-height: 0">
+
+<nav aria-label="Folders" style="width: 208px; flex: none; display: flex; flex-direction: column; padding: 12px 8px; box-sizing: border-box; gap: 2px; border-right: 1px solid #E4DDD0">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 2px 6px 8px">
+<span style="font-weight: 600">Folders</span>
+<button class="ib sm" aria-label="New folder"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+<div class="row" style="background: #F7E4DA; font-weight: 600">
+<svg class="i" viewBox="0 0 24 24" style="color: #B03D1A"><path d="M20 19a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"></path></svg>
+<span style="flex-grow: 1">Travail</span><span style="font-size: 12px; color: #5F584E; font-weight: 400">12</span>
+</div>
+<div class="row">
+<svg class="i" viewBox="0 0 24 24" style="color: #5F584E"><path d="M20 19a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"></path></svg>
+<span style="flex-grow: 1">Perso</span><span style="font-size: 12px; color: #5F584E">5</span>
+</div>
+<div class="row">
+<svg class="i" viewBox="0 0 24 24" style="color: #5F584E"><path d="M20 19a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"></path></svg>
+<span style="flex-grow: 1">Recherche</span><span style="font-size: 12px; color: #5F584E">8</span>
+</div>
+<div style="flex-grow: 1"></div>
+<div style="height: 1px; background: #E4DDD0; margin: 6px 4px"></div>
+<div class="row" style="color: #5F584E">
+<svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>
+<span style="flex-grow: 1">Trash</span><span style="font-size: 12px">3</span>
+</div>
+</nav>
+
+<section aria-label="Notes" style="width: 272px; flex: none; display: flex; flex-direction: column; padding: 12px 8px; box-sizing: border-box; gap: 2px; background: #F8F5EF; border-right: 1px solid #E4DDD0">
+<div style="display: flex; align-items: center; gap: 8px; padding: 0 2px 6px 10px">
+<span style="font-weight: 600">Travail</span>
+<span style="font-size: 12px; color: #5F584E; flex-grow: 1">12 notes</span>
+<button class="tb" style="height: 26px; padding: 0 8px; color: #963315"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg><span style="font-weight: 600">New note</span></button>
+</div>
+<div class="nrow" style="background: #F7E4DA">
+<div style="display: flex; gap: 8px"><span style="font-weight: 600; flex-grow: 1">Réunion projet · 18 sept.</span><span style="font-size: 12px; color: #5F584E">14:32</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; color: #5F584E"><svg class="i" viewBox="0 0 24 24" style="width: 12px; height: 12px"><path d="M12 20h9M16.4 3.6a2.1 2.1 0 0 1 3 3L7.4 18.6 3 20l1.4-4.4Z"></path></svg><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Ordre du jour, budget T4, décisions</span></div>
+</div>
+<div class="nrow">
+<div style="display: flex; gap: 8px"><span style="flex-grow: 1">Planning T4</span><span style="font-size: 12px; color: #5F584E">Hier</span></div>
+<div style="font-size: 12px; line-height: 16px; color: #5F584E">Jalons d'octobre à décembre</div>
+</div>
+<div class="nrow">
+<div style="display: flex; gap: 8px"><span style="flex-grow: 1">Idées appli</span><span style="font-size: 12px; color: #5F584E">22 sept.</span></div>
+<div style="font-size: 12px; line-height: 16px; color: #5F584E">Mode lecture, raccourcis clavier</div>
+</div>
+<div class="nrow">
+<div style="display: flex; gap: 8px"><span style="flex-grow: 1">Lectures</span><span style="font-size: 12px; color: #5F584E">19 sept.</span></div>
+<div style="font-size: 12px; line-height: 16px; color: #5F584E">Calm Technology, chapitre 3</div>
+</div>
+<div class="nrow">
+<div style="display: flex; gap: 8px"><span style="flex-grow: 1">Entretien Camille</span><span style="font-size: 12px; color: #5F584E">15 sept.</span></div>
+<div style="font-size: 12px; line-height: 16px; color: #5F584E">Retours sur le prototype</div>
+</div>
+<div class="nrow">
+<div style="display: flex; gap: 8px"><span style="flex-grow: 1">Point hebdo · 11 sept.</span><span style="font-size: 12px; color: #5F584E">11 sept.</span></div>
+<div style="font-size: 12px; line-height: 16px; color: #5F584E">Recrutement, onboarding de Léa</div>
+</div>
+</section>
+
+<main style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0; background: #FBF9F4">
+<div style="height: 60px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 24px">
+<div style="flex-grow: 1; min-width: 0">
+<div class="lit" style="font-size: 21px; line-height: 28px; font-weight: 600; white-space: nowrap">Réunion projet · 18 sept.</div>
+</div>
+<div role="radiogroup" aria-label="View" style="display: flex; padding: 2px; gap: 2px; background: #ECE7DD; border-radius: 8px">
+<button role="radio" aria-checked="true" class="tb" style="height: 26px; background: #FFFEFB; box-shadow: 0 1px 2px rgba(33,30,26,.14); font-weight: 600"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>Canvas</button>
+<button role="radio" aria-checked="false" class="tb" style="height: 26px; color: #5F584E"><svg class="i" viewBox="0 0 24 24"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"></path></svg>Reading</button>
+</div>
+<button class="tb" style="background: #B03D1A; color: #FFFFFF; font-weight: 600; padding: 0 8px 0 10px"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Insert<svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button class="ib" aria-label="Note actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button>
+</div>
+
+<div role="toolbar" aria-label="Text formatting" style="height: 42px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 12px 0 16px; background: #FFFEFB; border-top: 1px solid #E4DDD0; border-bottom: 1px solid #E4DDD0">
+<button class="tb" style="width: 118px; justify-content: space-between; box-shadow: inset 0 0 0 1px #DAD3C6; padding: 0 6px 0 10px; height: 28px">Paragraph<svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: #5F584E"><path d="m6 9 6 6 6-6"></path></svg></button>
+<div class="sep" style="margin: 0 4px"></div>
+<button class="ib on" aria-label="Bold" aria-pressed="true"><svg class="i" viewBox="0 0 24 24" style="stroke-width: 2.4"><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"></path></svg></button>
+<button class="ib" aria-label="Italic" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M19 4h-9M14 20H5M15 4 9 20"></path></svg></button>
+<button class="ib" aria-label="Underline" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M6 4v6a6 6 0 0 0 12 0V4M4 20h16"></path></svg></button>
+<button class="ib" aria-label="Strikethrough" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M16 4H9a3 3 0 0 0-2.8 4M14 12a4 4 0 0 1 0 8H6M4 12h16"></path></svg></button>
+<div class="sep" style="margin: 0 4px"></div>
+<button class="ib on" aria-label="Bulleted list" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h.01M3 12h.01M3 18h.01M8 6h13M8 12h13M8 18h13"></path></svg></button>
+<button class="ib" aria-label="Numbered list"><svg class="i" viewBox="0 0 24 24"><path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path></svg></button>
+<button class="ib" aria-label="Checklist"><svg class="i" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"></path></svg></button>
+<div class="sep" style="margin: 0 4px"></div>
+<button class="ib" aria-label="Link"><svg class="i" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg></button>
+<button class="tb" aria-label="Alignment" style="padding: 0 4px 0 7px; gap: 2px"><svg class="i" viewBox="0 0 24 24"><path d="M15 12H3M17 18H3M21 6H3"></path></svg><svg class="i" viewBox="0 0 24 24" style="width: 12px; height: 12px; color: #5F584E"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button class="tb" aria-label="Table" style="padding: 0 4px 0 7px; gap: 2px"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M12 3v18"></path></svg><svg class="i" viewBox="0 0 24 24" style="width: 12px; height: 12px; color: #5F584E"><path d="m6 9 6 6 6-6"></path></svg></button>
+<div style="flex-grow: 1"></div>
+<span style="font-size: 12px; color: #5F584E; display: flex; align-items: center; gap: 6px"><span class="kbd">Esc</span>finish editing</span>
+</div>
+
+<div aria-label="Canvas" style="flex-grow: 1; position: relative; overflow: hidden; background-color: #FBF9F4; background-image: radial-gradient(circle, #DDD5C6 1px, transparent 1.2px); background-size: 24px 24px; background-position: 12px 12px">
+
+<div class="card" style="left: 32px; top: 28px; width: 340px; border: 1.5px solid #B03D1A; box-shadow: 0 4px 12px -2px rgba(33,30,26,.14)">
+<div class="ch">
+<svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M4 7V4h16v3M9 20h6M12 4v16"></path></svg>
+<span style="flex-grow: 1">Text</span>
+<span style="display: flex; align-items: center; gap: 4px; font-size: 11px; line-height: 14px; font-weight: 600; color: #963315; padding: 2px 6px; border-radius: 999px; background: #F7E4DA"><svg class="i" viewBox="0 0 24 24" style="width: 11px; height: 11px"><path d="M12 20h9M16.4 3.6a2.1 2.1 0 0 1 3 3L7.4 18.6 3 20l1.4-4.4Z"></path></svg>Editing</span>
+<button class="ib sm" aria-label="Block actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button>
+</div>
+<div class="lit" lang="fr" style="padding: 12px 16px 14px; font-size: 15px; line-height: 23px">
+<div style="font-size: 18px; line-height: 26px; font-weight: 600; margin-bottom: 6px">Ordre du jour</div>
+<ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px">
+<li>Point sur la bêta (Camille)</li>
+<li><strong>Budget T4</strong><span style="display: inline-block; width: 1.5px; height: 18px; background: #211E1A; vertical-align: -3px; margin-left: 1px"></span> : arbitrage design ou dev</li>
+<li>Audit clavier avant la sortie</li>
+<li>Pause café ☕ à 10 h 30</li>
+</ul>
+<p style="margin: 8px 0 0; color: #5F584E; font-size: 14px">Prochaine réunion : jeudi 25 sept., 10 h.</p>
+</div>
+</div>
+
+<div class="card" style="left: 400px; top: 28px; width: 370px">
+<div class="ch">
+<svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M4 7V4h16v3M9 20h6M12 4v16"></path></svg>
+<span style="flex-grow: 1">Text</span>
+<button class="ib sm" aria-label="Block actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button>
+</div>
+<div style="padding: 12px 16px 14px">
+<div class="lit" style="font-size: 18px; line-height: 26px; font-weight: 600; margin-bottom: 8px">Décisions</div>
+<table style="width: 100%; border-collapse: collapse; font-size: 13px; line-height: 18px">
+<thead><tr style="background: #F1ECE3"><th style="text-align: left; padding: 6px 8px; border: 1px solid #DAD3C6; font-weight: 600">Sujet</th><th style="text-align: left; padding: 6px 8px; border: 1px solid #DAD3C6; font-weight: 600">Décision</th><th style="text-align: left; padding: 6px 8px; border: 1px solid #DAD3C6; font-weight: 600">Qui</th></tr></thead>
+<tbody>
+<tr><td style="padding: 6px 8px; border: 1px solid #DAD3C6">Bêta publique</td><td style="padding: 6px 8px; border: 1px solid #DAD3C6">Reportée au 6 oct.</td><td style="padding: 6px 8px; border: 1px solid #DAD3C6">Camille</td></tr>
+<tr><td style="padding: 6px 8px; border: 1px solid #DAD3C6">Budget design</td><td style="padding: 6px 8px; border: 1px solid #DAD3C6">Validé : 12 k€</td><td style="padding: 6px 8px; border: 1px solid #DAD3C6">Marc</td></tr>
+<tr><td style="padding: 6px 8px; border: 1px solid #DAD3C6">Accessibilité</td><td style="padding: 6px 8px; border: 1px solid #DAD3C6">Audit avant sortie</td><td style="padding: 6px 8px; border: 1px solid #DAD3C6">Inès</td></tr>
+</tbody>
+</table>
+<p class="lit" style="margin: 8px 0 0; font-size: 13px; line-height: 19px; font-style: italic; color: #5F584E">Validé en séance par l'équipe produit.</p>
+</div>
+</div>
+
+<div style="position: absolute; left: 27px; top: 317px; width: 350px; height: 262px; border: 1px solid #B03D1A; box-sizing: border-box; pointer-events: none"></div>
+<div class="h" style="left: 23px; top: 313px"></div><div class="h" style="left: 198px; top: 313px"></div><div class="h" style="left: 373px; top: 313px"></div>
+<div class="h" style="left: 23px; top: 444px"></div><div class="h" style="left: 373px; top: 444px"></div>
+<div class="h" style="left: 23px; top: 575px"></div><div class="h" style="left: 198px; top: 575px"></div><div class="h" style="left: 373px; top: 575px"></div>
+<div style="position: absolute; left: 27px; top: 586px; font-size: 11px; line-height: 14px; font-weight: 600; color: #FFFFFF; background: #B03D1A; padding: 2px 6px; border-radius: 4px">340 × 252</div>
+
+<div class="card" style="left: 32px; top: 322px; width: 340px; height: 252px; box-sizing: border-box; box-shadow: 0 4px 12px -2px rgba(33,30,26,.14)">
+<div class="ch">
+<svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M12 20h9M16.4 3.6a2.1 2.1 0 0 1 3 3L7.4 18.6 3 20l1.4-4.4Z"></path></svg>
+<span style="flex-grow: 1; color: #211E1A; font-weight: 600">Parcours utilisateur</span>
+<button class="ib sm" aria-label="Block actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button>
+</div>
+<svg viewBox="0 0 338 190" role="img" aria-label="Accueil mène à Dossier puis à Note ; la note renvoie vers l'accueil." style="display: block; width: 338px; height: 190px">
+<g fill="none" stroke="#2B2724" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M22 42c1-6 3-8 10-8l60 1c6 0 8 3 8 9l-1 30c0 6-3 8-9 8l-60-1c-6 0-8-3-8-9z"></path>
+<path d="M134 44c1-6 3-8 9-8l62 1c6 0 8 2 8 8l-1 30c0 7-2 9-9 8l-61-1c-6 0-8-2-8-8z"></path>
+<path d="M248 42c0-5 3-7 9-7l56 2c6 0 7 3 7 8l-1 31c0 6-3 8-9 7l-55-1c-6 0-8-3-8-9z"></path>
+<path d="M103 60c9-1 18 0 28 1M124 55l8 6-8 5"></path>
+<path d="M215 60c10 0 20 0 30-1M238 54l8 5-8 6"></path>
+</g>
+<path d="M284 88c-4 40-40 62-110 64-60 2-100-14-116-62M52 98l6-9 8 8" fill="none" stroke="#B03D1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+<g font-family="Literata, Georgia, serif" font-style="italic" font-size="14" fill="#2B2724" text-anchor="middle">
+<text x="61" y="64">Accueil</text><text x="174" y="64">Dossier</text><text x="284" y="64">Note</text>
+<text x="174" y="176" font-size="12" fill="#963315">retour rapide ?</text>
+</g>
+</svg>
+<div style="height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-top: 1px solid #EFEAE1; font-size: 11px; line-height: 14px; color: #5F584E">
+<svg class="i" viewBox="0 0 24 24" style="width: 12px; height: 12px; color: #2F6B3A"><path d="M20 6 9 17l-5-5"></path></svg>Described for screen readers
+</div>
+</div>
+
+<div class="card" style="left: 400px; top: 300px; width: 300px">
+<div class="ch">
+<svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3-3a2 2 0 0 0-3 0L6 21"></path></svg>
+<span style="flex-grow: 1">Image</span>
+<button class="ib sm" aria-label="Block actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button>
+</div>
+<div style="padding: 8px">
+<svg viewBox="0 0 284 170" role="img" aria-label="Photo du tableau blanc en fin de réunion, avec six post-it." style="display: block; width: 284px; height: 170px; border-radius: 4px">
+<rect width="284" height="170" fill="#D9D3C7"></rect>
+<rect x="14" y="12" width="256" height="138" rx="3" fill="#F7F6F2" stroke="#BDB5A6"></rect>
+<rect x="30" y="26" width="46" height="40" fill="#F2D98B"></rect><rect x="86" y="30" width="46" height="40" fill="#F2D98B"></rect>
+<rect x="150" y="24" width="46" height="40" fill="#B9D3EA"></rect><rect x="206" y="30" width="46" height="40" fill="#EFC0B4"></rect>
+<rect x="40" y="84" width="46" height="40" fill="#B9D3EA"></rect><rect x="170" y="86" width="46" height="40" fill="#F2D98B"></rect>
+<path d="M100 100c20-6 40-4 60 2M36 36h26M36 44h20M92 40h28M156 34h30M212 40h24" stroke="#5B5550" stroke-width="2" fill="none" stroke-linecap="round"></path>
+<rect x="110" y="150" width="64" height="8" rx="2" fill="#BDB5A6"></rect>
+</svg>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 4px 2px">
+<span class="lit" style="flex-grow: 1; font-size: 13px; line-height: 19px; font-style: italic; color: #5F584E">Tableau blanc, fin de séance</span>
+<span style="font-size: 11px; line-height: 14px; font-weight: 600; padding: 1px 6px; border-radius: 4px; border: 1px solid #8F877A; color: #5F584E">ALT</span>
+</div>
+</div>
+</div>
+
+</div>
+</main>
+</div>
+
+<footer style="height: 28px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 8px 0 12px; border-top: 1px solid #E4DDD0; font-size: 12px; line-height: 16px; color: #5F584E">
+<span role="status" style="display: flex; align-items: center; gap: 6px"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: #2F6B3A"><circle cx="12" cy="12" r="9"></circle><path d="m8.5 12 2.5 2.5 4.5-5"></path></svg>Saved · 14:32</span>
+<span style="width: 1px; height: 14px; background: #DAD3C6"></span>
+<span style="display: flex; align-items: center; gap: 6px"><span class="kbd">Ctrl Z</span>undoes typing in “Ordre du jour”</span>
+<span style="flex-grow: 1"></span>
+<button class="tb" style="height: 24px; padding: 0 6px; gap: 5px"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>Blocks</button>
+<span style="width: 1px; height: 14px; background: #DAD3C6"></span>
+<button class="ib sm" aria-label="Zoom out"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M5 12h14"></path></svg></button>
+<button class="tb" style="height: 24px; padding: 0 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px">100 %</button>
+<button class="ib sm" aria-label="Zoom in"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M12 5v14M5 12h14"></path></svg></button>
+<button class="tb" style="height: 24px; padding: 0 6px; gap: 5px"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>Fit</button>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":850}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "teksilo": {
+    "repository": "https://github.com/FernTech-EU/teksilo.git",
+    "revision": "f48cac491f60c61f40a2f8d714d58b06331c21ef"
+  },
+  "text-document": {
+    "repository": "https://github.com/FernTech-EU/text-document.git",
+    "revision": "c22ec1268ba1a164d2079e61b94fda4aec5d8c20"
+  },
+  "text-typeset": {
+    "repository": "https://github.com/FernTech-EU/text-typeset.git",
+    "revision": "3c4475663b6d4a5dfdc025fc4eb6edf93df8ec90"
+  }
+}

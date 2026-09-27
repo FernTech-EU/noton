@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Noton · Reading view</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F3EFE7}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0}
+.ib{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;color:#3D3831;flex:none}
+.ib.sm{width:24px;height:24px}
+.tb{height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border-radius:6px;white-space:nowrap}
+.kbd{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:14px;padding:1px 5px;border-radius:4px;background:#ECE7DD;color:#5F584E;border:1px solid #DAD3C6}
+.row{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:6px}
+.nrow{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:8px}
+.lit{font-family:'Literata',Georgia,serif}
+.gut{width:56px;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:4px;color:#5F584E}
+.num{font-size:11px;line-height:14px;font-weight:600;width:20px;height:20px;border-radius:999px;background:#ECE7DD;display:flex;align-items:center;justify-content:center}
+.blk{display:flex;gap:4px;padding:14px 0;border-top:1px solid #E4DDD0}
+td,th{padding:6px 10px;border:1px solid #DAD3C6;text-align:left;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 1280px; height: 850px; position: relative; overflow: hidden; background: #F3EFE7; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 13px; line-height: 18px; color: #211E1A; display: flex; flex-direction: column">
+
+<header style="height: 40px; flex: none; display: flex; align-items: center; gap: 8px; padding-left: 6px; border-bottom: 1px solid #E4DDD0">
+<button class="ib" aria-label="Menu"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+<div style="display: flex; align-items: center; gap: 8px"><svg viewBox="0 0 20 20" style="width: 18px; height: 18px; flex: none"><rect x="3" y="2" width="14" height="16" rx="3" fill="#B03D1A"></rect><path d="M7 6.5h6M7 10h6M7 13.5h3.5" stroke="#FFFEFB" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font-weight: 600">Noton</span><span style="color: #8F877A">/</span><span style="color: #5F584E">Carnets 2026</span></div>
+<div style="flex-grow: 1; display: flex; justify-content: center"><label style="width: 340px; height: 28px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; background: #ECE7DD; border-radius: 6px; color: #5F584E"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input aria-label="Search library" placeholder="Search library" style="flex-grow: 1; border: 0; background: transparent; font: inherit; outline: none; min-width: 0"><span class="kbd">Ctrl Shift F</span></label></div>
+<div style="display: flex; height: 40px"><button aria-label="Minimize" style="width: 46px; display: flex; align-items: center; justify-content: center"><svg class="i" viewBox="0 0 24 24"><path d="M6 12h12"></path></svg></button><button aria-label="Maximize" style="width: 46px; display: flex; align-items: center; justify-content: center"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"></rect></svg></button><button aria-label="Close" style="width: 46px; display: flex; align-items: center; justify-content: center"><svg class="i" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"></path></svg></button></div>
+</header>
+
+<div style="flex-grow: 1; display: flex; min-height: 0">
+<nav aria-label="Folders" style="width: 208px; flex: none; display: flex; flex-direction: column; padding: 12px 8px; box-sizing: border-box; gap: 2px; border-right: 1px solid #E4DDD0">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 2px 6px 8px"><span style="font-weight: 600">Folders</span><button class="ib sm" aria-label="New folder"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+<div class="row" style="background: #E6E0D5; font-weight: 600"><svg class="i" viewBox="0 0 24 24"><path d="M20 19a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"></path></svg><span style="flex-grow: 1">Travail</span><span style="font-size: 12px; color: #5F584E; font-weight: 400">12</span></div>
+<div class="row"><svg class="i" viewBox="0 0 24 24" style="color: #5F584E"><path d="M20 19a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"></path></svg><span style="flex-grow: 1">Perso</span><span style="font-size: 12px; color: #5F584E">5</span></div>
+<div class="row"><svg class="i" viewBox="0 0 24 24" style="color: #5F584E"><path d="M20 19a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"></path></svg><span style="flex-grow: 1">Recherche</span><span style="font-size: 12px; color: #5F584E">8</span></div>
+<div style="flex-grow: 1"></div><div style="height: 1px; background: #E4DDD0; margin: 6px 4px"></div>
+<div class="row" style="color: #5F584E"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg><span style="flex-grow: 1">Trash</span><span style="font-size: 12px">3</span></div>
+</nav>
+<section aria-label="Notes" style="width: 272px; flex: none; display: flex; flex-direction: column; padding: 12px 8px; box-sizing: border-box; gap: 2px; background: #F8F5EF; border-right: 1px solid #E4DDD0">
+<div style="display: flex; align-items: center; gap: 8px; padding: 0 2px 6px 10px"><span style="font-weight: 600">Travail</span><span style="font-size: 12px; color: #5F584E; flex-grow: 1">12 notes</span><button class="tb" style="height: 26px; padding: 0 8px; color: #963315"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg><span style="font-weight: 600">New note</span></button></div>
+<div class="nrow" style="background: #E6E0D5"><div style="display: flex; gap: 8px"><span style="font-weight: 600; flex-grow: 1">Réunion projet · 18 sept.</span><span style="font-size: 12px; color: #5F584E">14:32</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Ordre du jour, budget T4, décisions</div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Planning T4</span><span style="font-size: 12px; color: #5F584E">Yesterday</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Jalons d'octobre à décembre</div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Idées appli</span><span style="font-size: 12px; color: #5F584E">22 Sep</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Mode lecture, raccourcis clavier</div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Lectures</span><span style="font-size: 12px; color: #5F584E">19 Sep</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Calm Technology, chapitre 3</div></div>
+</section>
+
+<main style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0; background: #FBF9F4">
+<div style="height: 60px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 24px; border-bottom: 1px solid #E4DDD0">
+<div class="lit" style="flex-grow: 1; font-size: 21px; line-height: 28px; font-weight: 600; white-space: nowrap">Réunion projet · 18 sept.</div>
+<div role="radiogroup" aria-label="View" style="display: flex; padding: 2px; gap: 2px; background: #ECE7DD; border-radius: 8px">
+<button role="radio" aria-checked="false" class="tb" style="height: 26px; color: #5F584E"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>Canvas</button>
+<button role="radio" aria-checked="true" class="tb" style="height: 26px; background: #FFFEFB; box-shadow: 0 1px 2px rgba(33,30,26,.14); font-weight: 600"><svg class="i" viewBox="0 0 24 24"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"></path></svg>Reading</button>
+</div>
+<button class="tb" style="background: #B03D1A; color: #FFFFFF; font-weight: 600; padding: 0 8px 0 10px"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Insert<svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button class="ib" aria-label="Note actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button>
+</div>
+
+<div aria-label="Reading view" style="flex-grow: 1; overflow: hidden; display: flex; justify-content: center; padding: 8px 24px 0">
+<div lang="fr" style="width: 680px; display: flex; flex-direction: column">
+
+<div class="blk" style="border-top: 0">
+<div class="gut"><span class="num">1</span><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px" aria-label="Drag to reorder"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"></path></svg></div>
+<div class="lit" style="flex-grow: 1; font-size: 15px; line-height: 23px">
+<div style="font-size: 18px; line-height: 26px; font-weight: 600; margin-bottom: 4px">Ordre du jour</div>
+<ul style="margin: 0; padding-left: 20px"><li>Point sur la bêta (Camille)</li><li><strong>Budget T4</strong> : arbitrage design ou dev</li><li>Audit clavier avant la sortie</li><li>Pause café ☕ à 10 h 30</li></ul>
+<p style="margin: 6px 0 0; color: #5F584E; font-size: 14px">Prochaine réunion : jeudi 25 sept., 10 h.</p>
+</div>
+</div>
+
+<div style="height: 0; position: relative"><div style="position: absolute; left: 60px; right: 0; top: -1px; height: 2px; background: #B03D1A"></div><div style="position: absolute; left: 54px; top: -5px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #B03D1A; background: #FBF9F4; box-sizing: border-box"></div></div>
+
+<div class="blk" style="position: relative; border-radius: 8px; border-top-color: transparent; box-shadow: 0 0 0 2px #FBF9F4, 0 0 0 4px #2456A6; background: #FFFEFB; margin: 6px 0; padding: 12px 0">
+<div class="gut"><span class="num" style="background: #F7E4DA; color: #7E2A11">2</span>
+<button class="ib sm" aria-label="Read earlier (Alt+Up)"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="m5 12 7-7 7 7M12 19V5"></path></svg></button>
+<button class="ib sm" aria-label="Read later (Alt+Down)"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg></button>
+</div>
+<div style="flex-grow: 1; min-width: 0; padding-right: 12px">
+<div style="display: flex; align-items: center"><div class="lit" style="flex-grow: 1; font-size: 18px; line-height: 26px; font-weight: 600">Décisions</div><button class="ib sm" aria-label="Block actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button></div>
+<table style="border-collapse: collapse; font-size: 13px; line-height: 18px; width: 100%; margin-top: 8px">
+<thead><tr style="background: #F1ECE3"><th>Sujet</th><th>Décision</th><th>Qui</th></tr></thead>
+<tbody><tr><td>Bêta publique</td><td>Reportée au 6 oct.</td><td>Camille</td></tr><tr><td>Budget design</td><td>Validé : 12 k€</td><td>Marc</td></tr><tr><td>Accessibilité</td><td>Audit avant sortie</td><td>Inès</td></tr></tbody>
+</table>
+<p class="lit" style="margin: 8px 0 0; font-size: 13px; line-height: 19px; font-style: italic; color: #5F584E">Validé en séance par l'équipe produit.</p>
+</div>
+</div>
+</div>
+
+<div class="blk">
+<div class="gut"><span class="num">3</span><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"></path></svg></div>
+<div style="flex-grow: 1; display: flex; gap: 16px; align-items: flex-end">
+<svg viewBox="0 0 284 170" role="img" aria-label="Photo du tableau blanc en fin de réunion, avec six post-it." style="display: block; width: 240px; height: 144px; border-radius: 4px"><rect width="284" height="170" fill="#D9D3C7"></rect><rect x="14" y="12" width="256" height="138" rx="3" fill="#F7F6F2" stroke="#BDB5A6"></rect><rect x="30" y="26" width="46" height="40" fill="#F2D98B"></rect><rect x="86" y="30" width="46" height="40" fill="#F2D98B"></rect><rect x="150" y="24" width="46" height="40" fill="#B9D3EA"></rect><rect x="206" y="30" width="46" height="40" fill="#EFC0B4"></rect><rect x="40" y="84" width="46" height="40" fill="#B9D3EA"></rect><rect x="170" y="86" width="46" height="40" fill="#F2D98B"></rect></svg>
+<div class="lit" style="font-size: 13px; line-height: 19px; font-style: italic; color: #5F584E">Tableau blanc, fin de séance</div>
+</div>
+</div>
+
+<div class="blk">
+<div class="gut"><span class="num">4</span><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"></path></svg></div>
+<div style="flex-grow: 1; display: flex; gap: 16px">
+<div style="width: 240px; height: 110px; border: 1px solid #DAD3C6; border-radius: 6px; background: #FFFEFB; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 338 120" aria-hidden="true" style="width: 220px; height: 80px"><g fill="none" stroke="#2B2724" stroke-width="2.5" stroke-linecap="round"><path d="M22 22c1-6 3-8 10-8l60 1c6 0 8 3 8 9l-1 30c0 6-3 8-9 8l-60-1c-6 0-8-3-8-9z"></path><path d="M134 24c1-6 3-8 9-8l62 1c6 0 8 2 8 8l-1 30c0 7-2 9-9 8l-61-1c-6 0-8-2-8-8z"></path><path d="M248 22c0-5 3-7 9-7l56 2c6 0 7 3 7 8l-1 31c0 6-3 8-9 7l-55-1c-6 0-8-3-8-9z"></path><path d="M103 40h28M215 40h30"></path></g></svg></div>
+<div style="font-size: 13px; line-height: 19px"><div style="font-weight: 600">Parcours utilisateur</div><div class="lit" style="color: #5F584E; font-size: 14px; line-height: 21px; margin-top: 2px">Croquis : Accueil mène à Dossier puis à Note. Une flèche retour relie la note à l'accueil, annotée « retour rapide ? ».</div></div>
+</div>
+</div>
+
+</div>
+</div>
+</main>
+</div>
+
+<footer style="height: 28px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-top: 1px solid #E4DDD0; font-size: 12px; line-height: 16px; color: #5F584E">
+<span role="status" style="display: flex; align-items: center; gap: 6px"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: #2F6B3A"><circle cx="12" cy="12" r="9"></circle><path d="m8.5 12 2.5 2.5 4.5-5"></path></svg>Saved · 14:32</span>
+<span style="width: 1px; height: 14px; background: #DAD3C6"></span>
+<span style="display: flex; align-items: center; gap: 6px"><span class="kbd">Alt ↑</span><span class="kbd">Alt ↓</span>change reading order · <span class="kbd">Ctrl Z</span>undoes “move block 2”</span>
+<span style="flex-grow: 1"></span>
+<span>Reading order · 4 blocks · canvas layout unchanged</span>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":850}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

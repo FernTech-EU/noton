@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Noton · Direction B Atelier</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#1B2430}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0}
+.ib{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:4px;flex:none}
+.ib.sm{width:24px;height:24px}
+.ib.on{background:#0E6F68;color:#FFFFFF}
+.tb{height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border-radius:4px;white-space:nowrap}
+.sep{width:1px;height:18px;background:#D5DCE3;flex:none}
+.kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:14px;padding:1px 5px;border-radius:3px;background:#2A3A4D;color:#C9D3DE}
+.row{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border-radius:4px}
+.nrow{display:flex;flex-direction:column;gap:2px;padding:9px 12px;border-bottom:1px solid #E3E8ED}
+.card{position:absolute;background:#FFFFFF;border:1px solid #D5DCE3;border-radius:4px}
+.ch{height:28px;display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;background:#EEF2F5;border-bottom:1px solid #D5DCE3;color:#566474;font-size:12px;line-height:16px;border-radius:4px 4px 0 0}
+.h{position:absolute;width:8px;height:8px;background:#0E6F68;border-radius:50%}
+</style>
+</helmet>
+<div style="width: 1280px; height: 850px; position: relative; overflow: hidden; background: #FFFFFF; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 18px; color: #1B2430; display: flex">
+
+<nav aria-label="Folders" style="width: 212px; flex: none; background: #1B2430; color: #E6ECF2; display: flex; flex-direction: column">
+<div style="height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 8px">
+<button class="ib" aria-label="Menu" style="color: #C9D3DE"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+<span style="font-weight: 600; letter-spacing: 0.02em">NOTON</span>
+</div>
+<div style="padding: 4px 16px 12px; font-size: 12px; color: #9AA8B8">Carnets 2026</div>
+<div style="padding: 0 8px; display: flex; flex-direction: column; gap: 2px">
+<label style="height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 8px; background: #243142; border-radius: 4px; color: #9AA8B8; margin-bottom: 12px">
+<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<input aria-label="Search library" placeholder="Search" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; color: #E6ECF2; font: inherit; outline: none">
+</label>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 0 2px 4px 10px; font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: 0.06em; color: #9AA8B8">FOLDERS<button class="ib sm" aria-label="New folder" style="color: #C9D3DE"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+<div class="row" style="background: #2A3A4D; font-weight: 600"><span style="width: 3px; height: 16px; border-radius: 2px; background: #5EC4B6"></span><span style="flex-grow: 1">Travail</span><span style="font-size: 12px; color: #9AA8B8; font-weight: 400">12</span></div>
+<div class="row"><span style="width: 3px"></span><span style="flex-grow: 1">Perso</span><span style="font-size: 12px; color: #9AA8B8">5</span></div>
+<div class="row"><span style="width: 3px"></span><span style="flex-grow: 1">Recherche</span><span style="font-size: 12px; color: #9AA8B8">8</span></div>
+</div>
+<div style="flex-grow: 1"></div>
+<div style="padding: 8px; border-top: 1px solid #2A3A4D"><div class="row" style="color: #9AA8B8"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg><span style="flex-grow: 1">Trash</span><span style="font-size: 12px">3</span></div></div>
+</nav>
+
+<section aria-label="Notes" style="width: 268px; flex: none; background: #F4F6F8; border-right: 1px solid #D5DCE3; display: flex; flex-direction: column">
+<div style="height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 12px; border-bottom: 1px solid #D5DCE3">
+<span style="font-weight: 600; flex-grow: 1">Travail <span style="font-weight: 400; color: #566474">· 12</span></span>
+<button class="tb" style="height: 28px; background: #0E6F68; color: #FFFFFF; font-weight: 500; padding: 0 10px 0 8px"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>New note</button>
+</div>
+<div class="nrow" style="background: #FFFFFF; box-shadow: inset 3px 0 0 #0E6F68">
+<div style="display: flex; gap: 8px"><span style="font-weight: 600; flex-grow: 1">Réunion projet · 18 sept.</span></div>
+<div style="font-size: 12px; line-height: 16px; color: #566474">Ordre du jour, budget T4, décisions</div>
+<div style="font-size: 11px; line-height: 14px; color: #566474; font-family: 'IBM Plex Mono', monospace">14:32 · 4 blocks</div>
+</div>
+<div class="nrow"><span>Planning T4</span><div style="font-size: 12px; line-height: 16px; color: #566474">Jalons d'octobre à décembre</div><div style="font-size: 11px; line-height: 14px; color: #566474; font-family: 'IBM Plex Mono', monospace">Yesterday · 6 blocks</div></div>
+<div class="nrow"><span>Idées appli</span><div style="font-size: 12px; line-height: 16px; color: #566474">Mode lecture, raccourcis clavier</div><div style="font-size: 11px; line-height: 14px; color: #566474; font-family: 'IBM Plex Mono', monospace">22 Sep · 3 blocks</div></div>
+<div class="nrow"><span>Lectures</span><div style="font-size: 12px; line-height: 16px; color: #566474">Calm Technology, chapitre 3</div><div style="font-size: 11px; line-height: 14px; color: #566474; font-family: 'IBM Plex Mono', monospace">19 Sep · 2 blocks</div></div>
+<div class="nrow"><span>Entretien Camille</span><div style="font-size: 12px; line-height: 16px; color: #566474">Retours sur le prototype</div><div style="font-size: 11px; line-height: 14px; color: #566474; font-family: 'IBM Plex Mono', monospace">15 Sep · 5 blocks</div></div>
+</section>
+
+<main style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+<div style="height: 44px; flex: none; display: flex; align-items: center; justify-content: flex-end; background: #FFFFFF; border-bottom: 1px solid #E3E8ED">
+<span role="status" style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #566474; margin-right: auto; padding-left: 20px"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: #0E6F68"><path d="M20 6 9 17l-5-5"></path></svg>Saved 14:32</span>
+<button aria-label="Minimize" style="width: 46px; height: 44px; display: flex; align-items: center; justify-content: center; color: #566474"><svg class="i" viewBox="0 0 24 24"><path d="M6 12h12"></path></svg></button>
+<button aria-label="Maximize" style="width: 46px; height: 44px; display: flex; align-items: center; justify-content: center; color: #566474"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"></rect></svg></button>
+<button aria-label="Close" style="width: 46px; height: 44px; display: flex; align-items: center; justify-content: center; color: #566474"><svg class="i" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"></path></svg></button>
+</div>
+<div style="padding: 18px 24px 14px; display: flex; align-items: flex-end; gap: 12px; border-bottom: 1px solid #E3E8ED">
+<div style="flex-grow: 1">
+<div style="font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: 0.06em; color: #566474">TRAVAIL</div>
+<div style="font-size: 24px; line-height: 30px; font-weight: 600">Réunion projet · 18 sept.</div>
+</div>
+<div role="radiogroup" aria-label="View" style="display: flex; border: 1px solid #0E6F68; border-radius: 4px; overflow: hidden">
+<button role="radio" aria-checked="true" class="tb" style="border-radius: 0; background: #0E6F68; color: #FFFFFF; height: 28px">Canvas</button>
+<button role="radio" aria-checked="false" class="tb" style="border-radius: 0; color: #0E6F68; height: 28px">Reading</button>
+</div>
+<button class="tb" style="height: 30px; border: 1px solid #D5DCE3"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Insert</button>
+<button class="ib" aria-label="Note actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button>
+</div>
+
+<div aria-label="Canvas" style="flex-grow: 1; position: relative; overflow: hidden; background: #FFFFFF">
+
+<div role="toolbar" aria-label="Text formatting" style="position: absolute; left: 20px; top: 12px; height: 38px; display: flex; align-items: center; gap: 2px; padding: 0 4px; background: #1B2430; color: #E6ECF2; border-radius: 6px; box-shadow: 0 8px 20px -6px rgba(27,36,48,.35)">
+<button class="tb" style="height: 28px; padding: 0 8px">Paragraph<svg class="i" viewBox="0 0 24 24" style="width: 12px; height: 12px"><path d="m6 9 6 6 6-6"></path></svg></button>
+<div style="width: 1px; height: 18px; background: #3A4A5D"></div>
+<button class="ib on" aria-label="Bold" aria-pressed="true" style="width: 28px; height: 28px"><svg class="i" viewBox="0 0 24 24" style="stroke-width: 2.4"><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"></path></svg></button>
+<button class="ib" aria-label="Italic" style="width: 28px; height: 28px"><svg class="i" viewBox="0 0 24 24"><path d="M19 4h-9M14 20H5M15 4 9 20"></path></svg></button>
+<button class="ib" aria-label="Underline" style="width: 28px; height: 28px"><svg class="i" viewBox="0 0 24 24"><path d="M6 4v6a6 6 0 0 0 12 0V4M4 20h16"></path></svg></button>
+<button class="ib" aria-label="Strikethrough" style="width: 28px; height: 28px"><svg class="i" viewBox="0 0 24 24"><path d="M16 4H9a3 3 0 0 0-2.8 4M14 12a4 4 0 0 1 0 8H6M4 12h16"></path></svg></button>
+<div style="width: 1px; height: 18px; background: #3A4A5D"></div>
+<button class="ib on" aria-label="Bulleted list" style="width: 28px; height: 28px"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h.01M3 12h.01M3 18h.01M8 6h13M8 12h13M8 18h13"></path></svg></button>
+<button class="ib" aria-label="Numbered list" style="width: 28px; height: 28px"><svg class="i" viewBox="0 0 24 24"><path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path></svg></button>
+<button class="ib" aria-label="Link" style="width: 28px; height: 28px"><svg class="i" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg></button>
+<button class="ib" aria-label="More formatting" style="width: 28px; height: 28px"><svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+
+<div class="card" style="left: 20px; top: 58px; width: 340px; border-color: #0E6F68; box-shadow: 0 0 0 1px #0E6F68">
+<div class="ch" style="background: #E3F3F1; color: #0B5A55"><span style="flex-grow: 1; font-weight: 600">Text · editing</span><button class="ib sm" aria-label="Block actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button></div>
+<div lang="fr" style="padding: 12px 14px; font-size: 14px; line-height: 21px">
+<div style="font-size: 17px; line-height: 24px; font-weight: 600; margin-bottom: 6px">Ordre du jour</div>
+<ul style="margin: 0; padding-left: 18px">
+<li>Point sur la bêta (Camille)</li>
+<li><strong>Budget T4</strong><span style="display: inline-block; width: 1.5px; height: 17px; background: #1B2430; vertical-align: -3px"></span> : arbitrage design ou dev</li>
+<li>Audit clavier avant la sortie</li>
+<li>Pause café ☕ à 10 h 30</li>
+</ul>
+<p style="margin: 8px 0 0; color: #566474">Prochaine réunion : jeudi 25 sept., 10 h.</p>
+</div>
+</div>
+
+<div class="card" style="left: 384px; top: 58px; width: 380px">
+<div class="ch"><span style="flex-grow: 1">Text</span><button class="ib sm" aria-label="Block actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button></div>
+<div lang="fr" style="padding: 12px 14px">
+<div style="font-size: 17px; line-height: 24px; font-weight: 600; margin-bottom: 8px">Décisions</div>
+<table style="width: 100%; border-collapse: collapse; font-size: 13px; line-height: 18px">
+<thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 2px solid #1B2430; font-weight: 600">Sujet</th><th style="text-align: left; padding: 6px 8px; border-bottom: 2px solid #1B2430; font-weight: 600">Décision</th><th style="text-align: left; padding: 6px 8px; border-bottom: 2px solid #1B2430; font-weight: 600">Qui</th></tr></thead>
+<tbody>
+<tr><td style="padding: 6px 8px; border-bottom: 1px solid #E3E8ED">Bêta publique</td><td style="padding: 6px 8px; border-bottom: 1px solid #E3E8ED">Reportée au 6 oct.</td><td style="padding: 6px 8px; border-bottom: 1px solid #E3E8ED">Camille</td></tr>
+<tr><td style="padding: 6px 8px; border-bottom: 1px solid #E3E8ED">Budget design</td><td style="padding: 6px 8px; border-bottom: 1px solid #E3E8ED">Validé : 12 k€</td><td style="padding: 6px 8px; border-bottom: 1px solid #E3E8ED">Marc</td></tr>
+<tr><td style="padding: 6px 8px; border-bottom: 1px solid #E3E8ED">Accessibilité</td><td style="padding: 6px 8px; border-bottom: 1px solid #E3E8ED">Audit avant sortie</td><td style="padding: 6px 8px; border-bottom: 1px solid #E3E8ED">Inès</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div style="position: absolute; left: 16px; top: 338px; width: 348px; height: 258px; border: 1.5px dashed #0E6F68; box-sizing: border-box"></div>
+<div class="h" style="left: 12px; top: 334px"></div><div class="h" style="left: 356px; top: 334px"></div><div class="h" style="left: 12px; top: 592px"></div><div class="h" style="left: 356px; top: 592px"></div><div class="h" style="left: 356px; top: 463px"></div><div class="h" style="left: 12px; top: 463px"></div>
+<div class="card" style="left: 20px; top: 342px; width: 340px; height: 250px; box-sizing: border-box">
+<div class="ch"><span style="flex-grow: 1; color: #1B2430; font-weight: 600">Sketch · Parcours utilisateur</span><button class="ib sm" aria-label="Block actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button></div>
+<svg viewBox="0 0 338 210" role="img" aria-label="Accueil mène à Dossier puis à Note." style="display: block; width: 338px; height: 210px">
+<g fill="none" stroke="#1B2430" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M22 52c1-6 3-8 10-8l60 1c6 0 8 3 8 9l-1 30c0 6-3 8-9 8l-60-1c-6 0-8-3-8-9z"></path>
+<path d="M134 54c1-6 3-8 9-8l62 1c6 0 8 2 8 8l-1 30c0 7-2 9-9 8l-61-1c-6 0-8-2-8-8z"></path>
+<path d="M248 52c0-5 3-7 9-7l56 2c6 0 7 3 7 8l-1 31c0 6-3 8-9 7l-55-1c-6 0-8-3-8-9z"></path>
+<path d="M103 70c9-1 18 0 28 1M124 65l8 6-8 5M215 70c10 0 20 0 30-1M238 64l8 5-8 6"></path>
+</g>
+<path d="M284 98c-4 40-40 62-110 64-60 2-100-14-116-62M52 108l6-9 8 8" fill="none" stroke="#0E6F68" stroke-width="2" stroke-linecap="round"></path>
+<g font-family="IBM Plex Sans, sans-serif" font-size="13" fill="#1B2430" text-anchor="middle"><text x="61" y="74">Accueil</text><text x="174" y="74">Dossier</text><text x="284" y="74">Note</text></g>
+</svg>
+</div>
+
+<div class="card" style="left: 384px; top: 318px; width: 300px">
+<div class="ch"><span style="flex-grow: 1">Image</span><span style="font-size: 11px; font-weight: 600; color: #566474; border: 1px solid #566474; padding: 0 5px; border-radius: 3px">ALT</span><button class="ib sm" aria-label="Block actions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button></div>
+<svg viewBox="0 0 298 180" role="img" aria-label="Photo du tableau blanc, six post-it." style="display: block; width: 298px; height: 180px">
+<rect width="298" height="180" fill="#D6DCE2"></rect><rect x="16" y="14" width="266" height="146" rx="2" fill="#FAFBFC" stroke="#AEB8C2"></rect>
+<rect x="32" y="28" width="48" height="42" fill="#F2D98B"></rect><rect x="90" y="32" width="48" height="42" fill="#F2D98B"></rect><rect x="156" y="26" width="48" height="42" fill="#B9D3EA"></rect><rect x="214" y="32" width="48" height="42" fill="#EFC0B4"></rect><rect x="42" y="88" width="48" height="42" fill="#B9D3EA"></rect><rect x="178" y="90" width="48" height="42" fill="#F2D98B"></rect>
+<path d="M104 104c20-6 40-4 60 2" stroke="#4A5563" stroke-width="2" fill="none"></path>
+</svg>
+<div lang="fr" style="padding: 8px 12px; font-size: 12px; color: #566474; border-top: 1px solid #E3E8ED">Tableau blanc, fin de séance</div>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":850}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

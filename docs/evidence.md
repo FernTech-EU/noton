@@ -9,7 +9,7 @@ Reviewed on 17 September 2026 against local files, not assumed published API par
 | Teksilo | `e7c75c478d05dd9ae3c02f11ed315d2ae9667dc4`; pre-existing modifications in skill/app-guide files, left untouched |
 | Skribisto | `85d1eb2539c99676223b5785976468e3f30ff3bb` |
 | Qleany | Installed CLI reports `1.12.0`; new manifest schema `6` |
-| Requested Skribisto CLAUDE.md | Missing in this checkout, including hidden-file search; `CLA.md` is a contributor agreement, not development instructions |
+| Skribisto project guide | Corrected by owner to `/home/cyril/Devel/skribisto/.claude/CLAUDE.md`; read in follow-up. It is gitignored, so the initial rg inventory missed it. `CLA.md` is unrelated. |
 | Requested app guide | `/home/cyril/Devel/teksilo_app_guide.md`, 937 lines, read; byte-identical to the local teksilo-app skill's bundled guide |
 
 ## Applied local skills
@@ -77,16 +77,30 @@ Teksilo generation is the correct starting point for Noton.
   contracts are described in the architecture and must be encoded after scope selection.
 - `qleany check -m docs/qleany-core-proposal.yaml`: **Manifest is valid**.
 - `qleany list entities -m docs/qleany-core-proposal.yaml`: EntityBase, Root, Library,
-  Folder, Note, Block, Asset.
+  Folder, Note, Block, Asset, InkStroke (after the accepted ink addition).
 - No Noton Rust compilation, UI tests, MCP runs or screen-reader tests were possible:
   this is a planning session over a README-only repository. The validation plan specifies
   the evidence the implementation must produce.
 
-## External reviewer status
+## Follow-up verification and current review policy
 
-A read-only Claude Opus review was attempted using the installed CLI and only Read/Glob/Grep
-tools. The sandboxed attempt failed with `EAI_AGAIN` (API unreachable). The network retry
-was rejected by automatic approval review because repository excerpts would be sent to
-Anthropic without sufficiently explicit data-transfer approval. A separate approval question
-was sent to the owner. No Opus review result exists and none is credited to this plan.
-Local review continued and identified the formatting-revision and creation-undo hazards.
+The owner clarified the guide path and selected tables, best-effort ink, and Linux/Windows/
+macOS using Skribisto's CI. The guide, CI/native-release workflows, Linux dependency action,
+packaging checks, SceneCard sizing/reveal tests, rich-text table API, PathItem source and
+native pen support matrix have now been inspected. Page options and CI mapping are recorded
+in `page-options.md` and `ci-plan.md`. The owner subsequently selected **A with movable
+sketch blocks for ink**; all page-model decision markers have been updated.
+
+The current native pen shim source supports Windows and Wayland; macOS and X11 use
+NullPenSource. This is a verified source capability distinction, not a hardware test result.
+The existence of scene/editor regression tests is evidence of intended supported behaviour;
+no new pass result is claimed here because these suites were not run during planning.
+
+The earlier Claude CLI attempt failed to connect and its retry was denied. The owner has
+now explicitly said **no Opus/Sonnet; work in ChatGPT**. That supersedes the earlier agent
+permission and withdraws the external-review question. No further Claude invocation or
+external review is planned. No Opus review result exists or is credited.
+
+The project's guide says to commit/push only when asked. The initial planning commit
+predates reading that guide; follow-up document changes remain uncommitted. No upstream
+repository or CI publication destination was changed.

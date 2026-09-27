@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Noton · Status and feedback</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Literata:opsz,wght@7..72,600&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0;background:#FBF9F4}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0}
+.lbl{font-size:11px;line-height:14px;font-weight:500;color:#5F584E;letter-spacing:.02em}
+.sb{height:28px;display:flex;align-items:center;gap:12px;padding:0 12px;border:1px solid #E4DDD0;border-radius:8px;background:#F3EFE7;font-size:12px;line-height:16px;color:#5F584E;width:560px;box-sizing:border-box}
+.kbd{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:14px;padding:1px 5px;border-radius:4px;background:#ECE7DD;color:#5F584E;border:1px solid #DAD3C6}
+.note{font-size:12px;line-height:16px;color:#5F584E}
+</style>
+</helmet>
+<div style="width: 1280px; height: 760px; position: relative; overflow: hidden; background: #FBF9F4; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 13px; line-height: 18px; color: #211E1A; padding: 28px 32px; box-sizing: border-box; display: grid; grid-template-columns: 600px 1fr; gap: 32px">
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<span class="lbl">SAVE STATE · StatusBar, leading item (role status, announced politely)</span>
+<div class="sb"><span style="display: flex; align-items: center; gap: 6px; color: #5F584E"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M21 12a9 9 0 1 1-6.2-8.6"></path></svg>Saving…</span><span style="flex-grow: 1"></span><span>shown after 400 ms of pending writes</span></div>
+<div class="sb"><span style="display: flex; align-items: center; gap: 6px"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: #2F6B3A"><circle cx="12" cy="12" r="9"></circle><path d="m8.5 12 2.5 2.5 4.5-5"></path></svg>Saved · 14:32</span><span style="flex-grow: 1"></span><span>resting state, never animates</span></div>
+<div class="sb" style="background: #FBE4E0; border-color: #EDB8AF; color: #7F1810"><span style="display: flex; align-items: center; gap: 6px; font-weight: 600"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"></path></svg>Save failed</span><span style="flex-grow: 1"></span><span>stays until a save succeeds</span></div>
+<div class="note">Three cues each: icon shape (spinner, check, triangle), text and colour. “Save now” lives in the File menu as <span class="kbd">Ctrl S</span>, not here.</div>
+
+<span class="lbl" style="margin-top: 20px">SAVE FAILED · Banner, error, top of the note area (800 px wide at 1280)</span>
+<div style="width: 600px; border: 1px solid #E4DDD0; border-radius: 10px; overflow: hidden; background: #FBF9F4">
+<div style="height: 52px; display: flex; align-items: center; padding: 0 16px; font-family: 'Literata', Georgia, serif; font-size: 19px; font-weight: 600">Réunion projet · 18 sept.</div>
+<div role="alert" style="margin: 0 12px 12px; display: flex; flex-direction: column; gap: 10px; padding: 10px 12px; background: #FBE4E0; color: #7F1810; border-radius: 8px; border: 1px solid #EDB8AF">
+<div style="display: flex; gap: 10px; align-items: flex-start"><svg class="i" viewBox="0 0 24 24" style="margin-top: 1px"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"></path></svg>
+<div style="flex-grow: 1"><div style="font-weight: 600">Couldn't save “Carnets 2026”</div><div>The disk is full. Your changes are safe in this window; nothing has been lost yet.</div></div></div>
+<div style="display: flex; gap: 8px; padding-left: 26px">
+<button style="height: 30px; padding: 0 14px; border-radius: 6px; background: #B42318; color: #FFFFFF; font-weight: 600">Retry</button>
+<button style="height: 30px; padding: 0 12px; border-radius: 6px; border: 1px solid #B42318; color: #7F1810; font-weight: 500">Save a copy…</button>
+<span style="flex-grow: 1"></span>
+<button style="height: 30px; padding: 0 10px; border-radius: 6px; color: #7F1810; text-decoration: underline">Details</button>
+</div>
+</div>
+<div style="height: 90px; margin: 0 12px 12px; background-image: radial-gradient(circle, #DDD5C6 1px, transparent 1.2px); background-size: 24px 24px"></div>
+</div>
+<div class="note">No dismiss button: it clears itself when a save succeeds. Retry is the default button (Enter). The banner pushes the canvas down rather than covering it.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<span class="lbl">NOTE MOVED TO TRASH · Snackbar with action, bottom centre of the window, 6 s (paused while focused or hovered)</span>
+<div style="position: relative; height: 330px; border: 1px solid #E4DDD0; border-radius: 10px; overflow: hidden; display: flex">
+<div style="width: 250px; background: #F8F5EF; border-right: 1px solid #E4DDD0; padding: 12px 8px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="padding: 0 10px 6px; font-weight: 600">Travail <span style="font-weight: 400; font-size: 12px; color: #5F584E">11 notes</span></div>
+<div style="padding: 8px 10px; border-radius: 8px; background: #F7E4DA; font-weight: 600">Planning T4</div>
+<div style="padding: 8px 10px">Idées appli</div>
+<div style="padding: 8px 10px">Entretien Camille</div>
+</div>
+<div style="flex-grow: 1; background: #FBF9F4"></div>
+<div role="status" style="position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 14px; background: #2A2622; color: #F5F1EA; border-radius: 10px; box-shadow: 0 12px 32px -6px rgba(33,30,26,.30); white-space: nowrap">
+<svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+<span>“Lectures” moved to trash</span>
+<button style="height: 28px; padding: 0 10px; border-radius: 6px; color: #F3A07F; font-weight: 600; display: flex; align-items: center; gap: 8px">Undo<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 0 5px; border-radius: 4px; background: #45403A; color: #F5F1EA; font-weight: 400">Ctrl Z</span></button>
+<button aria-label="Dismiss" style="width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+</div>
+</div>
+<div class="note">Selection moves to the next note, not to nothing. Ctrl Z works even after the snackbar is gone, because the notes list still owns that undo (“Undo move to trash”). F6 reaches the snackbar while it is visible.</div>
+
+<span class="lbl" style="margin-top: 20px">UNDO TARGET · always named, follows focus</span>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div class="sb" style="width: 100%"><span class="kbd">Ctrl Z</span>undoes typing in “Ordre du jour”<span style="flex-grow: 1"></span><span>text block focused</span></div>
+<div class="sb" style="width: 100%"><span class="kbd">Ctrl Z</span>undoes “move block” (Parcours utilisateur)<span style="flex-grow: 1"></span><span>block selected</span></div>
+<div class="sb" style="width: 100%"><span class="kbd">Ctrl Z</span>undoes “rename folder” (Recherche)<span style="flex-grow: 1"></span><span>folder list focused</span></div>
+</div>
+<div class="note">The Edit menu shows the same wording: Undo typing, Undo move block, Undo rename folder. Never a bare “Undo”.</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":760}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

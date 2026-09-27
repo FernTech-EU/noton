@@ -1,0 +1,1876 @@
+{
+  "focus": 4294967364,
+  "nodes": [
+    {
+      "children": [
+        4294967330,
+        4294968217,
+        1,
+        2
+      ],
+      "id": 0,
+      "role": "Window"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 30.0,
+        "width": 30.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "description": "Menu",
+      "expanded": false,
+      "id": 4294967330,
+      "label": "Menu",
+      "role": "Button"
+    },
+    {
+      "bounds": {
+        "height": 820.0,
+        "width": 1280.0,
+        "x": 0.0,
+        "y": 30.0
+      },
+      "children": [
+        4294968257
+      ],
+      "id": 4294968217,
+      "role": "Group"
+    },
+    {
+      "id": 1,
+      "live": "polite",
+      "role": "Status"
+    },
+    {
+      "id": 2,
+      "live": "assertive",
+      "role": "Alert"
+    },
+    {
+      "bounds": {
+        "height": 820.0,
+        "width": 1280.0,
+        "x": 0.0,
+        "y": 30.0
+      },
+      "children": [
+        4294968221,
+        4294968224,
+        4294968222,
+        4294968226,
+        4294968223,
+        4294968228,
+        4294968231,
+        4294968233,
+        4294968239,
+        4294968245,
+        4294968251
+      ],
+      "id": 4294968257,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 756.0,
+        "width": 190.0,
+        "x": 12.0,
+        "y": 42.0
+      },
+      "children": [
+        4294967341,
+        4294967342,
+        4294967349,
+        4294967364,
+        4294967467,
+        4294967471
+      ],
+      "id": 4294968221,
+      "label": "Folders",
+      "role": "Group"
+    },
+    {
+      "actions": [
+        "focus",
+        "increment",
+        "decrement"
+      ],
+      "bounds": {
+        "height": 756.0,
+        "width": 6.0,
+        "x": 202.0,
+        "y": 42.0
+      },
+      "children": [
+        4294968225
+      ],
+      "id": 4294968224,
+      "label": "Splitter divider",
+      "numeric_value": 45.238094329833984,
+      "role": "Splitter",
+      "value": "45%"
+    },
+    {
+      "bounds": {
+        "height": 756.0,
+        "width": 230.0,
+        "x": 208.0,
+        "y": 42.0
+      },
+      "children": [
+        4294967479,
+        4294967480,
+        4294967487,
+        4294967593,
+        4294967598,
+        4294967622,
+        4294967629
+      ],
+      "id": 4294968222,
+      "label": "Notes",
+      "role": "Group"
+    },
+    {
+      "actions": [
+        "focus",
+        "increment",
+        "decrement"
+      ],
+      "bounds": {
+        "height": 756.0,
+        "width": 6.0,
+        "x": 438.0,
+        "y": 42.0
+      },
+      "children": [
+        4294968227
+      ],
+      "id": 4294968226,
+      "label": "Splitter divider",
+      "numeric_value": 21.821632385253903,
+      "role": "Splitter",
+      "value": "22%"
+    },
+    {
+      "bounds": {
+        "height": 756.0,
+        "width": 824.0,
+        "x": 444.0,
+        "y": 42.0
+      },
+      "children": [
+        4294967638,
+        4294967741,
+        4294967746,
+        4294967752,
+        4294967758,
+        4294967764,
+        4294967771,
+        4294967777,
+        4294967783,
+        4294967789,
+        4294967795,
+        4294967801,
+        4294967807,
+        4294967813,
+        4294967819,
+        4294967825,
+        4294967831,
+        4294967837,
+        4294967843,
+        4294967849,
+        21474837041
+      ],
+      "id": 4294968223,
+      "label": "Canvas",
+      "role": "Group"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 12.0,
+        "y": 798.0
+      },
+      "id": 4294968228,
+      "role": "Label",
+      "value": ""
+    },
+    {
+      "bounds": {
+        "height": 15.7294921875,
+        "width": 38.04150390625,
+        "x": 20.0,
+        "y": 810.13525390625
+      },
+      "children": [
+        16633825183517130916
+      ],
+      "id": 4294968231,
+      "role": "Label",
+      "text": {
+        "direction": "left_to_right",
+        "document_text": "Saved",
+        "has_geometry": true,
+        "run_count": 1
+      },
+      "value": "Saved"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 72.0,
+        "x": 895.4150390625,
+        "y": 806.0
+      },
+      "id": 4294968233,
+      "label": "Back",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 87.6171875,
+        "x": 977.4150390625,
+        "y": 806.0
+      },
+      "id": 4294968239,
+      "label": "Save now",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 96.87841796875,
+        "x": 1075.0322265625,
+        "y": 806.0
+      },
+      "id": 4294968245,
+      "label": "Show trash",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 78.08935546875,
+        "x": 1181.91064453125,
+        "y": 806.0
+      },
+      "id": 4294968251,
+      "label": "Settings",
+      "role": "Button"
+    },
+    {
+      "bounds": {
+        "height": 15.7294921875,
+        "width": 45.3984375,
+        "x": 20.0,
+        "y": 50.0
+      },
+      "children": [
+        13978832473047764226
+      ],
+      "id": 4294967341,
+      "role": "Label",
+      "text": {
+        "direction": "left_to_right",
+        "document_text": "Folders",
+        "has_geometry": true,
+        "run_count": 1
+      },
+      "value": "Folders"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 95.24072265625,
+        "x": 20.0,
+        "y": 73.7294921875
+      },
+      "id": 4294967342,
+      "label": "New folder",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "focus"
+      ],
+      "bounds": {
+        "height": 612.2705078125,
+        "width": 174.0,
+        "x": 20.0,
+        "y": 105.7294921875
+      },
+      "children": [
+        4294967350,
+        4294967361
+      ],
+      "id": 4294967349,
+      "role": "ListBox"
+    },
+    {
+      "actions": [
+        "focus",
+        "set_value",
+        "show_context_menu"
+      ],
+      "bounds": {
+        "height": 18.0,
+        "width": 166.0,
+        "x": 24.0,
+        "y": 731.0
+      },
+      "children": [
+        12771859777479359158
+      ],
+      "focused": true,
+      "id": 4294967364,
+      "label": "Rename",
+      "role": "TextInput",
+      "text": {
+        "direction": "left_to_right",
+        "document_text": "New folder",
+        "has_geometry": true,
+        "run_count": 1
+      },
+      "value": "New folder"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 20.0,
+        "y": 758.0
+      },
+      "id": 4294967467,
+      "role": "Status"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 101.861328125,
+        "x": 20.0,
+        "y": 766.0
+      },
+      "id": 4294967471,
+      "label": "Trash folder",
+      "role": "Button"
+    },
+    {
+      "bounds": {
+        "height": 756.0,
+        "width": 6.0,
+        "x": 202.0,
+        "y": 42.0
+      },
+      "id": 4294968225,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 15.7294921875,
+        "width": 36.15625,
+        "x": 216.0,
+        "y": 50.0
+      },
+      "children": [
+        17810191071591111173
+      ],
+      "id": 4294967479,
+      "role": "Label",
+      "text": {
+        "direction": "left_to_right",
+        "document_text": "Notes",
+        "has_geometry": true,
+        "run_count": 1
+      },
+      "value": "Notes"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 86.6142578125,
+        "x": 216.0,
+        "y": 73.7294921875
+      },
+      "id": 4294967480,
+      "label": "New note",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "focus",
+        "set_value",
+        "show_context_menu"
+      ],
+      "bounds": {
+        "height": 18.0,
+        "width": 186.0,
+        "x": 220.0,
+        "y": 110.7294921875
+      },
+      "id": 4294967487,
+      "label": "Search notes",
+      "role": "TextInput"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 216.0,
+        "y": 137.7294921875
+      },
+      "id": 4294967593,
+      "role": "Status"
+    },
+    {
+      "actions": [
+        "focus"
+      ],
+      "bounds": {
+        "height": 580.2705078125,
+        "width": 214.0,
+        "x": 216.0,
+        "y": 145.7294921875
+      },
+      "children": [
+        4294967599,
+        4294967620
+      ],
+      "id": 4294967598,
+      "role": "ListBox"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 147.18359375,
+        "x": 216.0,
+        "y": 734.0
+      },
+      "description": "Move the selected note to the next folder in the folder list.",
+      "id": 4294967622,
+      "label": "Move to next folder",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 93.23486328125,
+        "x": 216.0,
+        "y": 766.0
+      },
+      "id": 4294967629,
+      "label": "Trash note",
+      "role": "Button"
+    },
+    {
+      "bounds": {
+        "height": 756.0,
+        "width": 6.0,
+        "x": 438.0,
+        "y": 42.0
+      },
+      "id": 4294968227,
+      "role": "Unknown"
+    },
+    {
+      "actions": [
+        "focus",
+        "set_value",
+        "show_context_menu"
+      ],
+      "bounds": {
+        "height": 18.0,
+        "width": 800.0,
+        "x": 456.0,
+        "y": 55.0
+      },
+      "children": [
+        9636640987942806329
+      ],
+      "id": 4294967638,
+      "label": "Title",
+      "role": "TextInput",
+      "text": {
+        "direction": "left_to_right",
+        "document_text": "Planning",
+        "has_geometry": true,
+        "run_count": 1
+      },
+      "value": "Planning"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 452.0,
+        "y": 82.0
+      },
+      "id": 4294967741,
+      "role": "Status"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 91.3876953125,
+        "x": 452.0,
+        "y": 88.0
+      },
+      "id": 4294967746,
+      "label": "Text block",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 107.12353515625,
+        "x": 549.3876953125,
+        "y": 88.0
+      },
+      "id": 4294967752,
+      "label": "Sketch block",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 73.6904296875,
+        "x": 662.51123046875,
+        "y": 88.0
+      },
+      "id": 4294967758,
+      "label": "Canvas",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 110.037109375,
+        "x": 742.20166015625,
+        "y": 88.0
+      },
+      "id": 4294967764,
+      "label": "Reading view",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 72.0,
+        "x": 452.0,
+        "y": 118.0
+      },
+      "id": 4294967771,
+      "label": "Bold",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 72.0,
+        "x": 528.0,
+        "y": 118.0
+      },
+      "id": 4294967777,
+      "label": "Italic",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 87.54736328125,
+        "x": 604.0,
+        "y": 118.0
+      },
+      "id": 4294967783,
+      "label": "Underline",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 110.94482421875,
+        "x": 695.54736328125,
+        "y": 118.0
+      },
+      "id": 4294967789,
+      "label": "Strikethrough",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 132.55224609375,
+        "x": 810.4921875,
+        "y": 118.0
+      },
+      "id": 4294967795,
+      "label": "Insert 3 \u00d7 3 table",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 119.96484375,
+        "x": 947.04443359375,
+        "y": 118.0
+      },
+      "id": 4294967801,
+      "label": "Add row below",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 133.59326171875,
+        "x": 1071.00927734375,
+        "y": 118.0
+      },
+      "id": 4294967807,
+      "label": "Add column after",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 103.84814453125,
+        "x": 452.0,
+        "y": 142.0
+      },
+      "id": 4294967813,
+      "label": "Remove row",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 126.0966796875,
+        "x": 559.84814453125,
+        "y": 142.0
+      },
+      "id": 4294967819,
+      "label": "Remove column",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 111.27490234375,
+        "x": 689.94482421875,
+        "y": 142.0
+      },
+      "id": 4294967825,
+      "label": "Remove table",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 83.3896484375,
+        "x": 805.2197265625,
+        "y": 142.0
+      },
+      "id": 4294967831,
+      "label": "Bullet list",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 113.693359375,
+        "x": 892.609375,
+        "y": 142.0
+      },
+      "id": 4294967837,
+      "label": "Numbered list",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 79.4287109375,
+        "x": 1010.302734375,
+        "y": 142.0
+      },
+      "id": 4294967843,
+      "label": "Heading",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 91.60986328125,
+        "x": 1093.7314453125,
+        "y": 142.0
+      },
+      "id": 4294967849,
+      "label": "Paragraph",
+      "role": "Button"
+    },
+    {
+      "bounds": {
+        "height": 618.0,
+        "width": 808.0,
+        "x": 452.0,
+        "y": 172.0
+      },
+      "children": [
+        21474837237,
+        21474837393,
+        12884902637
+      ],
+      "id": 21474837041,
+      "role": "ScrollView"
+    },
+    {
+      "bounds": {
+        "height": 15.7294921875,
+        "width": 38.04150390625,
+        "x": 20.0,
+        "y": 810.13525390625
+      },
+      "id": 16633825183517130916,
+      "role": "TextRun",
+      "value": "Saved"
+    },
+    {
+      "bounds": {
+        "height": 15.7294921875,
+        "width": 45.3984375,
+        "x": 20.0,
+        "y": 50.0
+      },
+      "id": 13978832473047764226,
+      "role": "TextRun",
+      "value": "Folders"
+    },
+    {
+      "bounds": {
+        "height": 612.2705078125,
+        "width": 174.0,
+        "x": 20.0,
+        "y": 105.7294921875
+      },
+      "children": [
+        4294967351
+      ],
+      "id": 4294967350,
+      "role": "Group"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 20.0,
+        "y": 105.7294921875
+      },
+      "children": [
+        4294967362
+      ],
+      "id": 4294967361,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 15.7294921875,
+        "width": 67.24072265625,
+        "x": 24.0,
+        "y": 731.0
+      },
+      "id": 12771859777479359158,
+      "role": "TextRun",
+      "value": "New folder"
+    },
+    {
+      "bounds": {
+        "height": 15.7294921875,
+        "width": 36.15625,
+        "x": 216.0,
+        "y": 50.0
+      },
+      "id": 17810191071591111173,
+      "role": "TextRun",
+      "value": "Notes"
+    },
+    {
+      "bounds": {
+        "height": 580.2705078125,
+        "width": 214.0,
+        "x": 216.0,
+        "y": 145.7294921875
+      },
+      "children": [
+        4294967600,
+        4294967610
+      ],
+      "id": 4294967599,
+      "role": "Group"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 216.0,
+        "y": 145.7294921875
+      },
+      "children": [
+        4294967621
+      ],
+      "id": 4294967620,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 15.7294921875,
+        "width": 52.9140625,
+        "x": 456.0,
+        "y": 55.0
+      },
+      "id": 9636640987942806329,
+      "role": "TextRun",
+      "value": "Planning"
+    },
+    {
+      "bounds": {
+        "height": 192.818359375,
+        "width": 768.0,
+        "x": 472.0,
+        "y": 192.0
+      },
+      "children": [
+        21474837398
+      ],
+      "id": 21474837237,
+      "role": "Group"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 452.0,
+        "y": 172.0
+      },
+      "children": [
+        21474837399,
+        12884902640
+      ],
+      "id": 21474837393,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 452.0,
+        "y": 172.0
+      },
+      "children": [
+        12884902639,
+        12884902630
+      ],
+      "id": 12884902637,
+      "role": "Unknown"
+    },
+    {
+      "actions": [
+        "click",
+        "scroll_into_view"
+      ],
+      "bounds": {
+        "height": 32.0,
+        "width": 174.0,
+        "x": 20.0,
+        "y": 105.7294921875
+      },
+      "children": [
+        4294967352
+      ],
+      "id": 4294967351,
+      "label": "New folder",
+      "role": "ListBoxOption",
+      "selected": true
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 20.0,
+        "y": 105.7294921875
+      },
+      "id": 4294967362,
+      "role": "Unknown"
+    },
+    {
+      "actions": [
+        "click",
+        "scroll_into_view"
+      ],
+      "bounds": {
+        "height": 32.0,
+        "width": 214.0,
+        "x": 216.0,
+        "y": 145.7294921875
+      },
+      "children": [
+        12884902193
+      ],
+      "id": 4294967600,
+      "label": "R\u00e9union projet",
+      "role": "ListBoxOption",
+      "selected": false
+    },
+    {
+      "actions": [
+        "click",
+        "scroll_into_view"
+      ],
+      "bounds": {
+        "height": 32.0,
+        "width": 214.0,
+        "x": 216.0,
+        "y": 177.7294921875
+      },
+      "children": [
+        12884902203
+      ],
+      "id": 4294967610,
+      "label": "Planning",
+      "role": "ListBoxOption",
+      "selected": true
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 216.0,
+        "y": 145.7294921875
+      },
+      "id": 4294967621,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 192.818359375,
+        "width": 768.0,
+        "x": 472.0,
+        "y": 192.0
+      },
+      "children": [
+        21474837239,
+        21474837397,
+        21474837248,
+        21474837348,
+        21474837257,
+        21474837263,
+        21474837268,
+        21474837276,
+        21474837296,
+        21474837269,
+        21474837295
+      ],
+      "id": 21474837398,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 8.0,
+        "x": 448.0,
+        "y": 172.0
+      },
+      "id": 21474837399,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 8.0,
+        "x": 448.0,
+        "y": 172.0
+      },
+      "id": 12884902640,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 8.0,
+        "width": 0.0,
+        "x": 452.0,
+        "y": 168.0
+      },
+      "id": 12884902639,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 8.0,
+        "width": 0.0,
+        "x": 452.0,
+        "y": 168.0
+      },
+      "id": 12884902630,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 32.0,
+        "width": 174.0,
+        "x": 20.0,
+        "y": 105.7294921875
+      },
+      "id": 4294967352,
+      "label": "New folder",
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 32.0,
+        "width": 214.0,
+        "x": 216.0,
+        "y": 145.7294921875
+      },
+      "id": 12884902193,
+      "label": "R\u00e9union projet",
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 32.0,
+        "width": 214.0,
+        "x": 216.0,
+        "y": 177.7294921875
+      },
+      "id": 12884902203,
+      "label": "Planning",
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 15.7294921875,
+        "width": 63.3876953125,
+        "x": 496.0,
+        "y": 220.13525390625
+      },
+      "children": [
+        18157086353133871095
+      ],
+      "id": 21474837239,
+      "role": "Label",
+      "text": {
+        "direction": "left_to_right",
+        "document_text": "Text block",
+        "has_geometry": true,
+        "run_count": 1
+      },
+      "value": "Text block"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 101.6708984375,
+        "x": 1020.48388671875,
+        "y": 216.0
+      },
+      "id": 21474837397,
+      "label": "Read earlier",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 89.84521484375,
+        "x": 1126.15478515625,
+        "y": 216.0
+      },
+      "id": 21474837248,
+      "label": "Read later",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 84.91943359375,
+        "x": 496.0,
+        "y": 246.0
+      },
+      "id": 21474837348,
+      "label": "Move left",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 93.65380859375,
+        "x": 584.91943359375,
+        "y": 246.0
+      },
+      "id": 21474837257,
+      "label": "Move right",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 81.21875,
+        "x": 682.5732421875,
+        "y": 246.0
+      },
+      "id": 21474837263,
+      "label": "Move up",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 99.4111328125,
+        "x": 767.7919921875,
+        "y": 246.0
+      },
+      "id": 21474837268,
+      "label": "Move down",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 99.34130859375,
+        "x": 871.203125,
+        "y": 246.0
+      },
+      "id": 21474837276,
+      "label": "Make wider",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 120.31396484375,
+        "x": 974.54443359375,
+        "y": 246.0
+      },
+      "id": 21474837296,
+      "label": "Make narrower",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "click",
+        "focus"
+      ],
+      "bounds": {
+        "height": 24.0,
+        "width": 99.51904296875,
+        "x": 1098.8583984375,
+        "y": 246.0
+      },
+      "id": 21474837269,
+      "label": "Trash block",
+      "role": "Button"
+    },
+    {
+      "actions": [
+        "focus",
+        "show_context_menu"
+      ],
+      "bounds": {
+        "height": 84.818359375,
+        "width": 720.0,
+        "x": 496.0,
+        "y": 276.0
+      },
+      "children": [
+        21474837391,
+        21474837385,
+        21474837389
+      ],
+      "id": 21474837295,
+      "role": "GenericContainer"
+    },
+    {
+      "bounds": {
+        "height": 15.7294921875,
+        "width": 63.3876953125,
+        "x": 496.0,
+        "y": 220.13525390625
+      },
+      "id": 18157086353133871095,
+      "role": "TextRun",
+      "value": "Text block"
+    },
+    {
+      "actions": [
+        "focus",
+        "set_value",
+        "scroll_into_view"
+      ],
+      "bounds": {
+        "height": 76.818359375,
+        "width": 712.0,
+        "x": 500.0,
+        "y": 280.0
+      },
+      "children": [
+        9663602406583265655
+      ],
+      "id": 21474837391,
+      "role": "MultilineTextInput",
+      "text": {
+        "direction": "left_to_right",
+        "document_text": "Cellule \u2014 caf\u00e9",
+        "has_geometry": true,
+        "run_count": 0
+      }
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 496.0,
+        "y": 276.0
+      },
+      "children": [
+        21474837386,
+        21474837394
+      ],
+      "id": 21474837385,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x": 496.0,
+        "y": 276.0
+      },
+      "children": [
+        21474837204,
+        21474837042
+      ],
+      "id": 21474837389,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 76.818359375,
+        "width": 712.0,
+        "x": 500.0,
+        "y": 280.0
+      },
+      "children": [
+        11195091365735711267,
+        14523280056554958147,
+        13762086020951993315
+      ],
+      "id": 9663602406583265655,
+      "role": "Table"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 8.0,
+        "x": 492.0,
+        "y": 276.0
+      },
+      "id": 21474837386,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 8.0,
+        "x": 492.0,
+        "y": 276.0
+      },
+      "id": 21474837394,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 8.0,
+        "width": 0.0,
+        "x": 496.0,
+        "y": 272.0
+      },
+      "id": 21474837204,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 8.0,
+        "width": 0.0,
+        "x": 496.0,
+        "y": 272.0
+      },
+      "id": 21474837042,
+      "role": "Unknown"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 712.0,
+        "x": 500.0,
+        "y": 285.0
+      },
+      "children": [
+        9431159149217328745,
+        10507760029640429098,
+        16199770957741106795
+      ],
+      "id": 11195091365735711267,
+      "role": "Row"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 712.0,
+        "x": 500.0,
+        "y": 309.939453125
+      },
+      "children": [
+        15326342495252857673,
+        16402943375675958026,
+        12871582266921859915
+      ],
+      "id": 14523280056554958147,
+      "role": "Row"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 712.0,
+        "x": 500.0,
+        "y": 334.87890625
+      },
+      "children": [
+        11998153804433610793,
+        13074754684856711146,
+        13632776302524824747
+      ],
+      "id": 13762086020951993315,
+      "role": "Row"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 505.0,
+        "y": 285.0
+      },
+      "children": [
+        16422215779104515144
+      ],
+      "id": 9431159149217328745,
+      "role": "Cell"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 741.6666870117188,
+        "y": 285.0
+      },
+      "children": [
+        12740075436608018507
+      ],
+      "id": 10507760029640429098,
+      "role": "Cell"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.6666259765625,
+        "x": 978.3333740234376,
+        "y": 285.0
+      },
+      "children": [
+        13967455550773517386
+      ],
+      "id": 16199770957741106795,
+      "role": "Cell"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 505.0,
+        "y": 309.939453125
+      },
+      "children": [
+        13094027088285268264
+      ],
+      "id": 15326342495252857673,
+      "role": "Cell"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 741.6666870117188,
+        "y": 309.939453125
+      },
+      "children": [
+        9411886745788771627
+      ],
+      "id": 16402943375675958026,
+      "role": "Cell"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.6666259765625,
+        "x": 978.3333740234376,
+        "y": 309.939453125
+      },
+      "children": [
+        10639266859954270506
+      ],
+      "id": 12871582266921859915,
+      "role": "Cell"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 505.0,
+        "y": 334.87890625
+      },
+      "children": [
+        9765838397466021384
+      ],
+      "id": 11998153804433610793,
+      "role": "Cell"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 741.6666870117188,
+        "y": 334.87890625
+      },
+      "children": [
+        15307070091824300555
+      ],
+      "id": 13074754684856711146,
+      "role": "Cell"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.6666259765625,
+        "x": 978.3333740234376,
+        "y": 334.87890625
+      },
+      "children": [
+        11400460895557235338
+      ],
+      "id": 13632776302524824747,
+      "role": "Cell"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 505.0,
+        "y": 285.0
+      },
+      "children": [
+        9351385307823669433
+      ],
+      "id": 16422215779104515144,
+      "role": "Label",
+      "text": {
+        "document_text": "Cellule \u2014 caf\u00e9",
+        "has_geometry": true,
+        "run_count": 1
+      }
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 741.6666870117188,
+        "y": 285.0
+      },
+      "children": [
+        9461861733371156272
+      ],
+      "id": 12740075436608018507,
+      "role": "Label",
+      "text": {
+        "document_text": "",
+        "has_geometry": true,
+        "run_count": 1
+      }
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.6666259765625,
+        "x": 978.3333740234376,
+        "y": 285.0
+      },
+      "children": [
+        13550948848117420794
+      ],
+      "id": 13967455550773517386,
+      "role": "Label",
+      "text": {
+        "document_text": "",
+        "has_geometry": true,
+        "run_count": 1
+      }
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 505.0,
+        "y": 309.939453125
+      },
+      "children": [
+        10294254327944141367
+      ],
+      "id": 13094027088285268264,
+      "role": "Label",
+      "text": {
+        "document_text": "",
+        "has_geometry": true,
+        "run_count": 1
+      }
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 741.6666870117188,
+        "y": 309.939453125
+      },
+      "children": [
+        16211311017310475576
+      ],
+      "id": 9411886745788771627,
+      "role": "Label",
+      "text": {
+        "document_text": "",
+        "has_geometry": true,
+        "run_count": 1
+      }
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.6666259765625,
+        "x": 978.3333740234376,
+        "y": 309.939453125
+      },
+      "children": [
+        16190728911821220225
+      ],
+      "id": 10639266859954270506,
+      "role": "Label",
+      "text": {
+        "document_text": "",
+        "has_geometry": true,
+        "run_count": 1
+      }
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 505.0,
+        "y": 334.87890625
+      },
+      "children": [
+        13060886532476517966
+      ],
+      "id": 9765838397466021384,
+      "role": "Label",
+      "text": {
+        "document_text": "",
+        "has_geometry": true,
+        "run_count": 1
+      }
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.66668701171875,
+        "x": 741.6666870117188,
+        "y": 334.87890625
+      },
+      "children": [
+        17814645070412741190
+      ],
+      "id": 15307070091824300555,
+      "role": "Label",
+      "text": {
+        "document_text": "",
+        "has_geometry": true,
+        "run_count": 1
+      }
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 228.6666259765625,
+        "x": 978.3333740234376,
+        "y": 334.87890625
+      },
+      "children": [
+        15810579896934234385
+      ],
+      "id": 11400460895557235338,
+      "role": "Label",
+      "text": {
+        "document_text": "",
+        "has_geometry": true,
+        "run_count": 1
+      }
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 95.8056640625,
+        "x": 505.0,
+        "y": 285.0
+      },
+      "id": 9351385307823669433,
+      "role": "TextRun",
+      "value": "Cellule \u2014 caf\u00e9"
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 0.0,
+        "x": 741.6666870117188,
+        "y": 285.0
+      },
+      "id": 9461861733371156272,
+      "role": "TextRun",
+      "value": ""
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 0.0,
+        "x": 978.3333740234376,
+        "y": 285.0
+      },
+      "id": 13550948848117420794,
+      "role": "TextRun",
+      "value": ""
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 0.0,
+        "x": 505.0,
+        "y": 309.939453125
+      },
+      "id": 10294254327944141367,
+      "role": "TextRun",
+      "value": ""
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 0.0,
+        "x": 741.6666870117188,
+        "y": 309.939453125
+      },
+      "id": 16211311017310475576,
+      "role": "TextRun",
+      "value": ""
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 0.0,
+        "x": 978.3333740234376,
+        "y": 309.939453125
+      },
+      "id": 16190728911821220225,
+      "role": "TextRun",
+      "value": ""
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 0.0,
+        "x": 505.0,
+        "y": 334.87890625
+      },
+      "id": 13060886532476517966,
+      "role": "TextRun",
+      "value": ""
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 0.0,
+        "x": 741.6666870117188,
+        "y": 334.87890625
+      },
+      "id": 17814645070412741190,
+      "role": "TextRun",
+      "value": ""
+    },
+    {
+      "bounds": {
+        "height": 16.939453125,
+        "width": 0.0,
+        "x": 978.3333740234376,
+        "y": 334.87890625
+      },
+      "id": 15810579896934234385,
+      "role": "TextRun",
+      "value": ""
+    }
+  ],
+  "root": 0
+}

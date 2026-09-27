@@ -1,0 +1,193 @@
+# Planning-only core entity model for selected option A: canvas + linear view, movable sketches.
+# Tables are rich-text content; Drawing blocks own strokes. Non-drawing blocks own none.
+# samples_json is a validated, versioned vector sample codec, never framework geometry.
+# Custom operation contracts are specified in architecture.md; no generation requested.
+schema:
+  version: 6
+global:
+  language: rust
+  application_name: Noton
+  organisation:
+    name: FernTech
+    domain: ferntech.eu
+  prefix_path: crates
+entities:
+- name: EntityBase
+  only_for_heritage: true
+  undoable: false
+  fields:
+  - name: id
+    type: uinteger
+  - name: created_at
+    type: datetime
+  - name: updated_at
+    type: datetime
+- name: Root
+  inherits_from: EntityBase
+  undoable: false
+  single_model: false
+  fields:
+  - name: libraries
+    type: entity
+    entity: Library
+    relationship: ordered_one_to_many
+    strong: true
+    list_model: true
+    list_model_displayed_field: title
+- name: Library
+  inherits_from: EntityBase
+  undoable: true
+  single_model: true
+  fields:
+  - name: uid
+    type: uuid
+  - name: title
+    type: string
+  - name: folders
+    type: entity
+    entity: Folder
+    relationship: ordered_one_to_many
+    strong: true
+    list_model: true
+    list_model_displayed_field: title
+  - name: assets
+    type: entity
+    entity: Asset
+    relationship: one_to_many
+    strong: true
+- name: Folder
+  inherits_from: EntityBase
+  undoable: true
+  single_model: true
+  fields:
+  - name: uid
+    type: uuid
+  - name: title
+    type: string
+  - name: trashed
+    type: boolean
+  - name: notes
+    type: entity
+    entity: Note
+    relationship: ordered_one_to_many
+    strong: true
+    list_model: true
+    list_model_displayed_field: title
+- name: Note
+  inherits_from: EntityBase
+  undoable: true
+  single_model: true
+  fields:
+  - name: uid
+    type: uuid
+  - name: title
+    type: string
+  - name: trashed
+    type: boolean
+  - name: blocks
+    type: entity
+    entity: Block
+    relationship: ordered_one_to_many
+    strong: true
+    list_model: true
+    list_model_displayed_field: label
+- name: Block
+  inherits_from: EntityBase
+  undoable: true
+  single_model: true
+  fields:
+  - name: uid
+    type: uuid
+  - name: label
+    type: string
+  - name: trashed
+    type: boolean
+  - name: kind
+    type: enum
+    enum_name: BlockKind
+    enum_values:
+    - RichText
+    - Image
+    - Drawing
+  - name: x
+    type: float
+  - name: y
+    type: float
+  - name: width
+    type: float
+  - name: height
+    type: float
+  - name: z
+    type: float
+  - name: sizing
+    type: enum
+    enum_name: BlockSizing
+    enum_values:
+    - ContentHeight
+    - FixedAspect
+    - FixedSize
+  - name: content_version
+    type: uinteger
+  - name: content_djot
+    type: string
+  - name: alt_text
+    type: string
+  - name: decorative
+    type: boolean
+  - name: asset
+    type: entity
+    entity: Asset
+    relationship: many_to_one
+    optional: true
+  - name: description
+    type: string
+  - name: strokes
+    type: entity
+    entity: InkStroke
+    relationship: ordered_one_to_many
+    strong: true
+- name: Asset
+  inherits_from: EntityBase
+  undoable: true
+  single_model: false
+  fields:
+  - name: uid
+    type: uuid
+  - name: digest
+    type: string
+  - name: mime_type
+    type: string
+  - name: original_name
+    type: string
+  - name: byte_length
+    type: uinteger
+- name: InkStroke
+  inherits_from: EntityBase
+  undoable: true
+  single_model: false
+  fields:
+  - name: uid
+    type: uuid
+  - name: trashed
+    type: boolean
+  - name: sample_format_version
+    type: uinteger
+  - name: samples_json
+    type: string
+  - name: brush_version
+    type: uinteger
+  - name: brush_width
+    type: float
+  - name: brush_rgba
+    type: uinteger
+  - name: use_pressure
+    type: boolean
+features: []
+ui:
+  rust_teksilo: true
+  rust_cli: false
+  rust_slint: false
+  rust_ios: false
+  rust_android: false
+  cpp_qt_qtwidgets: false
+  cpp_qt_qtquick: false

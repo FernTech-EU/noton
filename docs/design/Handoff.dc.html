@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Theme handoff and changes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&amp;family=Literata:opsz,wght@7..72,600&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0;background:#FBF9F4}
+pre{margin:0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:18px;white-space:pre;color:#211E1A}
+</style>
+</helmet>
+<div style="width: 960px; height: 2200px; box-sizing: border-box; padding: 56px; background: #FBF9F4; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 13px; line-height: 18px; color: #211E1A; display: flex; flex-direction: column; gap: 28px">
+<h1 style="margin: 0; font-family: 'Literata', Georgia, serif; font-size: 28px; line-height: 36px; font-weight: 600">Theme handoff · Carnet</h1>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+<div style="background: #FFFEFB; border: 1px solid #DAD3C6; border-radius: 10px; padding: 16px">
+<pre># light
+colors.surface_main = #F3EFE7
+colors.surface_content = #FBF9F4
+colors.surface_raised = #FFFEFB
+colors.surface_sunken = #ECE7DD
+colors.surface_hover = #E9E3D7
+colors.surface_pressed = #DFD8CA
+colors.surface_selected = #F7E4DA
+colors.surface_selected_inactive = #E6E0D5
+colors.surface_disabled = #EFEBE3
+colors.text_primary = #211E1A
+colors.text_secondary = #5F584E
+colors.text_disabled = #9C9488
+colors.text_on_accent = #FFFFFF
+colors.text_link = #A33A17
+colors.text_error = #B42318
+colors.text_warning = #7A4F00
+colors.text_success = #2F6B3A
+colors.accent = #B03D1A
+colors.accent_hover = #963315
+colors.accent_pressed = #7E2A11
+colors.accent_subtle_bg = #F7E4DA
+colors.border = #DAD3C6
+colors.border_strong = #8F877A
+colors.border_focused = #2456A6
+colors.divider = #E4DDD0
+colors.status_info_fg = #2456A6
+colors.status_info_bg = #E3ECF8
+colors.status_success_fg = #2F6B3A
+colors.status_success_bg = #E3F0E3
+colors.status_warning_fg = #7A4F00
+colors.status_warning_bg = #FBEFD2
+colors.status_error_fg = #B42318
+colors.status_error_bg = #FBE4E0
+colors.selection_bg_active = #F5D0BF
+colors.selection_bg_inactive = #E6DFD3
+colors.search_match_bg = #FBE7A1
+colors.search_match_current_bg = #F2B84B
+colors.tooltip_bg = #2A2622
+colors.tooltip_text = #F5F1EA
+colors.scrollbar_thumb = #C9C1B3
+colors.scrollbar_thumb_hover = #A89F90
+colors.scrollbar_track = #EFEAE1</pre>
+</div>
+<div style="background: #1C1A17; border-radius: 10px; padding: 16px">
+<pre style="color: #EDE7DD"># dark
+colors.surface_main = #1C1A17
+colors.surface_content = #23201C
+colors.surface_raised = #2C2824
+colors.surface_sunken = #171512
+colors.surface_hover = #34302A
+colors.surface_pressed = #3E3932
+colors.surface_selected = #4A2A1E
+colors.surface_selected_inactive = #36312B
+colors.surface_disabled = #25221E
+colors.text_primary = #EDE7DD
+colors.text_secondary = #B3AA9C
+colors.text_disabled = #6F685E
+colors.text_on_accent = #1C1A17
+colors.text_link = #F3A07F
+colors.text_error = #FF8A7A
+colors.text_warning = #E9B949
+colors.text_success = #7BC68A
+colors.accent = #F0825A
+colors.accent_hover = #F59A77
+colors.accent_pressed = #E06B42
+colors.accent_subtle_bg = #3F261C
+colors.border = #3A352E
+colors.border_strong = #7A7266
+colors.border_focused = #8DB4F2
+colors.divider = #302C26
+colors.status_info_fg = #9CC0F5
+colors.status_info_bg = #1E2A3C
+colors.status_success_fg = #8FD19E
+colors.status_success_bg = #1E2E22
+colors.status_warning_fg = #EBC15A
+colors.status_warning_bg = #36290F
+colors.status_error_fg = #FF9C8F
+colors.status_error_bg = #3D1E1A
+colors.selection_bg_active = #6B3522
+colors.selection_bg_inactive = #3A342D
+colors.search_match_bg = #5A4A12
+colors.search_match_current_bg = #7A600F
+colors.tooltip_bg = #EDE7DD
+colors.tooltip_text = #1C1A17
+colors.scrollbar_thumb = #4D463D
+colors.scrollbar_thumb_hover = #6A6256
+colors.scrollbar_track = #201D1A</pre>
+</div>
+</div>
+<div style="background: #FFFEFB; border: 1px solid #DAD3C6; border-radius: 10px; padding: 16px">
+<pre># shape, shadow, spacing, type (both themes)
+shape.radius_control = 6
+shape.radius_popup = 10
+shape.radius_pill = 999
+shape.border_width = 1
+shape.focus_ring_width = 2
+shape.focus_ring_offset = 2
+shape.shadow_xs = 0 1 1 0 #211E1A0F      # dark: #0000004D
+shape.shadow_sm = 0 1 3 0 #211E1A1A      # dark: #00000066
+shape.shadow_md = 0 4 12 -2 #211E1A24    # dark: #00000080
+shape.shadow_lg = 0 12 32 -6 #211E1A38   # dark: #00000099
+spacing.control_gap = 6
+spacing.section_gap = 20
+spacing.panel_padding = 12
+fonts.ui = "Instrument Sans"      # OFL, embed 400/500/600
+fonts.mono = "JetBrains Mono"     # OFL
+fonts.content = "Literata"        # OFL, editor ramp only
+type.body = 13/18 400    type.body_bold = 13/18 600
+type.small = 12/16 400   type.small_bold = 12/16 600
+type.tiny = 11/14 500    type.mono = 12/16 400
+# scene (teksilo-scene, CUSTOM style values)
+scene.selection_frame = accent, 1 px, offset 4, handles 8 px square
+scene.editing_border = accent, 1.5 px
+scene.grid_dot = #DDD5C6 / dark #3A352E, pitch 24</pre>
+</div>
+<h2 style="margin: 8px 0 0; font-family: 'Literata', Georgia, serif; font-size: 22px; line-height: 30px; font-weight: 600">What changed from the prototype</h2>
+<ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 21px">
+<li><strong>Formatting is contextual.</strong> Fourteen always-on buttons become one Toolbar row that only appears while a text block is being edited, with pressed states (Bold, list) and overflow into ⌄.</li>
+<li><strong>State is visible everywhere.</strong> Pressed toggles, a SegmentedControl for Canvas | Reading, radio tiles in Settings, bold plus fill for selected rows.</li>
+<li><strong>Cards lost their button rows.</strong> Move, resize and trash live in the header ⋮ menu, on the keyboard and in Position and size…; drawing tools only exist in drawing mode.</li>
+<li><strong>New blocks land in free space</strong> (24 px from the nearest block), never on top.</li>
+<li><strong>Lists carry information.</strong> Note rows show snippet, date and a sketch marker; counts on folders; rename is inline; trash is a place in the Folders pane, not a footer button.</li>
+<li><strong>Chrome is organised.</strong> Title bar holds menu, library name, search and window controls; the status bar holds save state, the undo target, the block navigator and zoom. Save now and Settings moved into the menu.</li>
+<li><strong>Identity.</strong> Warm paper surfaces, one vermilion accent, Literata for note content, a real dark palette rather than an inversion.</li>
+<li><strong>Accessibility is designed in.</strong> Ink-blue focus ring distinct from vermilion selection, named undo, F6 regions, second cues for every state, AA contrast in both themes.</li>
+<li><strong>Narrow windows work.</strong> Single-column navigation with a Breadcrumb; the canvas zooms to fit and offers Reading view without switching it silently.</li>
+<li><strong>Missing UI added.</strong> Block navigator, sketch naming and description, checklist and link commands, trash view with permanent delete (P2 boards).</li>
+</ol>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":2200}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

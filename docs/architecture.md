@@ -1,7 +1,9 @@
 # Noton architecture proposal
 
 Status: planning proposal, 17 September 2026. No application or upstream code changed.
-Feature choices and supported platforms have been asked of the owner and are not yet approved.
+Owner selected tables and best-effort ink, plus Linux/Windows/macOS using Skribisto CI.
+Owner selected **A: canvas + editable linear view, with movable ink sketch blocks**.
+[Decision and alternatives](page-options.md). This session remains planning-only.
 The recommendations below define a complete candidate product, not a promise of OneNote parity.
 
 ## 1. Product and navigation
@@ -35,7 +37,7 @@ Navigation never changes the underlying two-level hierarchy. F6 cycles regions;
 Shift+F6 reverses. Arrow keys navigate lists; Enter opens; Escape leaves transient UI.
 Drag reorder and move-to-folder commands must be equivalent operations.
 
-The page recommendation is free-positioned rich-text/image blocks plus an editable
+The selected page model is free-positioned rich-text/table, image and drawing blocks plus an editable
 linear Reading view over the **same** blocks. This is one document model with two
 presentations. It avoids two page formats and gives non-spatial access to all content.
 Reading order is explicit, independent of x/y and paint z-order, and user-reorderable.
@@ -43,8 +45,7 @@ Changing the view never changes content or geometry. Reading view is available t
 the canvas must also be accessible in its own right.
 
 Use `TitleBar`, `WindowFrame`, and one `MenuModel`. Render a hamburger on Linux/Windows;
-mirror the same model to the macOS native menu using Skribisto's pattern if macOS is
-selected. Provide native-decoration fallback when no title-bar host is available.
+mirror the same model to the macOS native menu using Skribisto's pattern on macOS. Provide native-decoration fallback when no title-bar host is available.
 Menu, toolbar, keyboard, context menu, and automation invoke the same typed intents.
 No duplicated menu command implementations or hand-maintained shortcut labels.
 
@@ -53,8 +54,8 @@ No duplicated menu command implementations or hand-maintained shortcut labels.
 See [feature choices](feature-choices.md). Suggested baseline: rich text, checklists,
 images with alt text, links, search, trash/restore, native portable backup and HTML/text
 export, settings, French/English, autosave and accessible operation.
-Tables, tags, attachments, ink, audio, OCR, PDF annotation, templates, retained page
-versions, sync/collaboration, and OneNote import require explicit selection. These are
+Tables and best-effort ink are selected. Tags, attachments, audio, OCR, PDF annotation,
+templates, retained page versions, sync/collaboration and OneNote import are not selected. These are
 product scope choices, not automatically promised subsequent releases.
 
 For rich text, initially offer paragraph/headings, bold/italic/underline/strike,
@@ -127,6 +128,13 @@ This authority handoff must be explicit—there are not three independently writ
 | Note | UUID, title, trashed state; strongly owns ordered blocks |
 | Block | UUID, kind, trashed state, position, width, sizing policy, z-order, versioned content; optional weak asset reference |
 | Asset | UUID, content digest, MIME type, original filename, byte length; bytes stored once |
+
+A Drawing block owns ordered InkStroke records (UUID,
+versioned vector sample payload and brush attributes), with a title/description at drawing
+level. This is part of the selected page model. Stroke coordinates are local to the sketch;
+its placement and viewport never rewrite the original samples. Rendered ink is clipped to
+the sketch bounds. Canvas movement does not change reading order.
+Tables remain in TextDocument rich content; do not create a second spreadsheet/table model.
 
 All entities under an undoable trunk must also be undoable, as Qleany requires. Preferences,
 camera state, selected IDs, search caches and save progress are outside that ownership tree.
@@ -265,7 +273,7 @@ an open file. See [SQLite atomic commit](https://www.sqlite.org/atomiccommit.htm
 
 Block text candidate: UTF-8 Djot with a Noton codec version, following Skribisto's existing
 text-document bridge. The approved formatting subset must round-trip including links,
-checklists, tables if selected, language, and image references. Exact structural equality
+checklists, tables, language, and image references. Exact structural equality
 of the supported semantic model, not byte-for-byte markup equality, is the gate. If Djot
 cannot preserve an approved feature, supply an explicit lossless codec/extension and its
 migration before exposing that feature; never silently downgrade it to Markdown.
@@ -414,3 +422,31 @@ teksilo-scene, text-document or Qleany. This session changed none of them.
 
 These are recommendations. Selecting a different product requirement triggers a concrete
 revision of the affected contracts, not an attempt to hide the mismatch in implementation.
+
+## 13. Accepted scope update
+
+Tables are required, including insert/delete table, row/column editing, keyboard and AT cell
+navigation, text/format editing, undo/redo, search and lossless persistence. Their content
+uses the existing rich-text document semantics. Tests cover empty cells, non-ASCII text,
+wide tables, paste, row deletion undo and save/reopen. They are no longer optional gates.
+
+Ink is required with best-effort physical tablet support. See [page options](page-options.md)
+for the vector model, pointer cancellation, accessible textual equivalents and platform
+capability limits. Without hardware, record physical pressure/tilt/eraser behaviour as
+unverified; mouse drawing, synthetic samples, undo/redo and storage must still pass.
+The selected contract is movable drawing blocks; unrestricted annotation across text
+is outside scope. Text reflow does not alter sketch geometry. Sketches retain aspect ratio
+in linear view, with their descriptions and explicit editing commands available.
+
+All three desktop platforms are required. [CI adaptation](ci-plan.md) names the Skribisto
+workflows, helper actions and scripts to reuse and the necessary Noton changes. The guide
+at `/home/cyril/Devel/skribisto/.claude/CLAUDE.md` is now read; follow its feature-first
+MVVM layout, `*_vm.rs` naming, real/mock Layer-A seams, preference for `teksu!`, menu-global
+action registration and explicit session ownership. Its commit/push-only-when-asked rule
+is adopted: subsequent planning updates are left uncommitted unless requested.
+
+No use case calls another use case: share pure domain helpers instead. After scaffolding,
+use-case/UoW macro contracts are owned together; generated file classification alone is not
+permission to overwrite a modified UoW, controller or Cargo manifest. Review exact diffs.
+Avoid EditorHandle mutations inside editor `on_change` callbacks, which can hold editor
+borrows; queue work and reconcile at the frame/barrier boundary.

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Noton · Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=Literata:opsz,wght@7..72,600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F3EFE7}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0}
+.seg{display:flex;padding:2px;gap:2px;background:#ECE7DD;border-radius:8px;align-self:flex-start}
+.s{height:28px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border-radius:6px;color:#5F584E;white-space:nowrap}
+.s.on{background:#FFFEFB;color:#211E1A;font-weight:600;box-shadow:0 1px 2px rgba(33,30,26,.14),inset 0 0 0 1px #8F877A}
+.lab{font-weight:600;padding-top:6px}
+.tile{flex:1;display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:8px;border:1px solid #DAD3C6;background:#FFFEFB;position:relative;text-align:left}
+.tile.on{border:2px solid #B03D1A;padding:9px}
+.pv{height:54px;border-radius:5px;display:flex;overflow:hidden;border:1px solid #DAD3C6}
+</style>
+</helmet>
+<div style="width: 1280px; height: 850px; position: relative; overflow: hidden; background: #F3EFE7; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 13px; line-height: 18px; color: #211E1A">
+
+<div aria-hidden="true" style="position: absolute; inset: 0; display: flex; flex-direction: column">
+<div style="height: 40px; border-bottom: 1px solid #E4DDD0; display: flex; align-items: center; padding-left: 14px; gap: 10px"><span style="width: 14px; height: 2px; background: #3D3831; box-shadow: 0 -5px 0 #3D3831, 0 5px 0 #3D3831"></span><span style="font-weight: 600; margin-left: 12px">Noton</span><span style="color: #5F584E">/ Carnets 2026</span></div>
+<div style="flex-grow: 1; display: flex">
+<div style="width: 208px; border-right: 1px solid #E4DDD0; padding: 12px 8px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px"><div style="height: 32px; border-radius: 6px; background: #F7E4DA"></div><div style="height: 32px"></div></div>
+<div style="width: 272px; background: #F8F5EF; border-right: 1px solid #E4DDD0; padding: 12px 8px; box-sizing: border-box"><div style="height: 52px; border-radius: 8px; background: #F7E4DA"></div></div>
+<div style="flex-grow: 1; background: #FBF9F4; position: relative">
+<div style="position: absolute; left: 32px; top: 130px; width: 340px; height: 240px; background: #FFFEFB; border: 1px solid #DAD3C6; border-radius: 8px"></div>
+<div style="position: absolute; left: 400px; top: 130px; width: 370px; height: 210px; background: #FFFEFB; border: 1px solid #DAD3C6; border-radius: 8px"></div>
+<div style="position: absolute; left: 32px; top: 400px; width: 340px; height: 250px; background: #FFFEFB; border: 1px solid #DAD3C6; border-radius: 8px"></div>
+</div>
+</div>
+</div>
+<div style="position: absolute; inset: 0; background: rgba(33,30,26,.38)"></div>
+
+<div role="dialog" aria-modal="true" aria-labelledby="st" style="position: absolute; left: 330px; top: 40px; width: 620px; height: 770px; box-sizing: border-box; background: #FFFEFB; border-radius: 12px; box-shadow: 0 12px 32px -6px rgba(0,0,0,.30); display: flex; flex-direction: column">
+<div style="height: 56px; flex: none; display: flex; align-items: center; padding: 0 12px 0 24px; border-bottom: 1px solid #E4DDD0">
+<h2 id="st" style="margin: 0; font-family: 'Literata', Georgia, serif; font-size: 20px; line-height: 28px; font-weight: 600; flex-grow: 1">Settings</h2>
+<button aria-label="Close" style="width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #3D3831"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+</div>
+
+<div style="flex-grow: 1; padding: 20px 24px; display: grid; grid-template-columns: 150px 1fr; gap: 20px 16px; align-content: start">
+
+<span class="lab">Language</span>
+<div role="radiogroup" aria-label="Language" class="seg">
+<button role="radio" aria-checked="false" class="s">System (English)</button>
+<button role="radio" aria-checked="true" class="s on"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M20 6 9 17l-5-5"></path></svg>English</button>
+<button role="radio" aria-checked="false" class="s" lang="fr">Français</button>
+</div>
+
+<span class="lab">Appearance</span>
+<div role="radiogroup" aria-label="Appearance" style="display: flex; gap: 10px">
+<button role="radio" aria-checked="true" class="tile on">
+<div class="pv"><div style="flex: 1; background: #F3EFE7"></div><div style="flex: 1; background: #1C1A17"></div></div>
+<div style="display: flex; align-items: center; gap: 6px"><svg class="i" viewBox="0 0 24 24"><path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 21h8M12 17v4"></path></svg><span style="font-weight: 600; flex-grow: 1">System</span><span style="width: 18px; height: 18px; border-radius: 50%; background: #B03D1A; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg class="i" viewBox="0 0 24 24" style="width: 12px; height: 12px; stroke-width: 3"><path d="M20 6 9 17l-5-5"></path></svg></span></div>
+<span style="font-size: 12px; line-height: 16px; color: #5F584E">Follows your OS · now Light</span>
+</button>
+<button role="radio" aria-checked="false" class="tile">
+<div class="pv" style="background: #F3EFE7; padding: 6px; box-sizing: border-box; gap: 4px"><div style="width: 30%; background: #ECE7DD; border-radius: 3px"></div><div style="flex: 1; background: #FFFEFB; border-radius: 3px; border: 1px solid #DAD3C6"></div></div>
+<div style="display: flex; align-items: center; gap: 6px"><svg class="i" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"></path></svg><span>Light</span></div>
+<span style="font-size: 12px; line-height: 16px; color: #5F584E">Paper</span>
+</button>
+<button role="radio" aria-checked="false" class="tile">
+<div class="pv" style="background: #1C1A17; padding: 6px; box-sizing: border-box; gap: 4px; border-color: #3A352E"><div style="width: 30%; background: #2C2824; border-radius: 3px"></div><div style="flex: 1; background: #23201C; border-radius: 3px; border: 1px solid #3A352E"></div></div>
+<div style="display: flex; align-items: center; gap: 6px"><svg class="i" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg><span>Dark</span></div>
+<span style="font-size: 12px; line-height: 16px; color: #5F584E">Ink</span>
+</button>
+</div>
+
+<span class="lab">Text size</span>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 12px">
+<button aria-label="Smaller text" style="width: 30px; height: 30px; border-radius: 6px; border: 1px solid #8F877A; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600">A</button>
+<div style="flex-grow: 1; position: relative; height: 30px" role="slider" aria-label="Text size" aria-valuemin="80" aria-valuemax="200" aria-valuenow="100" aria-valuetext="100 %">
+<div style="position: absolute; left: 0; right: 0; top: 13px; height: 4px; border-radius: 2px; background: #DAD3C6"></div>
+<div style="position: absolute; left: 0; width: 16.7%; top: 13px; height: 4px; border-radius: 2px; background: #B03D1A"></div>
+<div style="position: absolute; left: calc(16.7% - 9px); top: 6px; width: 18px; height: 18px; border-radius: 50%; background: #FFFEFB; border: 2px solid #B03D1A; box-sizing: border-box"></div>
+<div style="position: absolute; left: 0; right: 0; top: 22px; display: flex; justify-content: space-between; font-size: 11px; line-height: 14px; color: #5F584E; padding-top: 4px"><span>80</span><span style="margin-left: 8%">100</span><span>125</span><span>150</span><span>175</span><span>200</span></div>
+</div>
+<button aria-label="Larger text" style="width: 30px; height: 30px; border-radius: 6px; border: 1px solid #8F877A; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600">A</button>
+<span style="width: 56px; height: 30px; border-radius: 6px; background: #ECE7DD; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 12px">100 %</span>
+</div>
+<span style="font-size: 12px; line-height: 16px; color: #5F584E; margin-top: 8px">Ctrl + and Ctrl − change it anywhere; Ctrl 0 resets.</span>
+</div>
+
+<span class="lab">Reduce motion</span>
+<div role="radiogroup" aria-label="Reduce motion" class="seg">
+<button role="radio" aria-checked="true" class="s on"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M20 6 9 17l-5-5"></path></svg>System</button>
+<button role="radio" aria-checked="false" class="s">On</button>
+<button role="radio" aria-checked="false" class="s">Off</button>
+</div>
+
+<span class="lab">Default note view</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div role="radiogroup" aria-label="Default note view" class="seg">
+<button role="radio" aria-checked="true" class="s on"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M20 6 9 17l-5-5"></path></svg>Canvas</button>
+<button role="radio" aria-checked="false" class="s">Reading</button>
+</div>
+<span style="font-size: 12px; line-height: 16px; color: #5F584E">Used when a note opens. Each note remembers the view you last chose.</span>
+</div>
+
+<span class="lab">Backups</span>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 8px">
+<label style="flex-grow: 1; height: 30px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid #8F877A; border-radius: 6px; background: #F6F2EA; min-width: 0"><svg class="i" viewBox="0 0 24 24" style="color: #5F584E"><path d="M20 19a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"></path></svg><input aria-label="Backup location" readonly value="~/Documents/Noton/Sauvegardes" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #211E1A"></label>
+<button style="height: 30px; padding: 0 12px; border-radius: 6px; border: 1px solid #8F877A; box-sizing: border-box; font-weight: 500; white-space: nowrap">Change…</button>
+</div>
+<div style="display: flex; align-items: center; gap: 10px">
+<span>Keep</span>
+<button aria-haspopup="listbox" style="height: 30px; padding: 0 8px 0 10px; border-radius: 6px; border: 1px solid #8F877A; box-sizing: border-box; display: flex; align-items: center; gap: 12px">Last 10 backups<svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: #5F584E"><path d="m6 9 6 6 6-6"></path></svg></button>
+<span style="font-size: 12px; color: #5F584E">Last backup: today, 09:12</span>
+</div>
+</div>
+
+<span class="lab">Shortcuts</span>
+<div><button style="height: 30px; padding: 0 12px; border-radius: 6px; border: 1px solid #8F877A; box-sizing: border-box; display: flex; align-items: center; gap: 8px; font-weight: 500"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"></path></svg>Keyboard shortcuts…</button></div>
+</div>
+
+<div style="height: 60px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 24px; border-top: 1px solid #E4DDD0">
+<span style="flex-grow: 1; font-size: 12px; color: #5F584E; display: flex; align-items: center; gap: 6px"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M12 16v-4M12 8h.01"></path></svg>Changes apply immediately.</span>
+<button style="height: 32px; padding: 0 18px; border-radius: 6px; background: #B03D1A; color: #FFFFFF; font-weight: 600; box-shadow: 0 0 0 2px #FFFEFB, 0 0 0 4px #2456A6">Done</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":850}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

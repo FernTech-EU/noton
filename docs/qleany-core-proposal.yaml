@@ -1,6 +1,7 @@
-# Planning-only core entity model; not the implementation manifest.
-# Custom operation contracts are specified in architecture.md, section 10.
-# No code generation is requested by this artifact.
+# Planning-only core entity model for selected option A: canvas + linear view, movable sketches.
+# Tables are rich-text content; Drawing blocks own strokes. Non-drawing blocks own none.
+# samples_json is a validated, versioned vector sample codec, never framework geometry.
+# Custom operation contracts are specified in architecture.md; no generation requested.
 schema:
   version: 6
 global:
@@ -107,6 +108,7 @@ entities:
     enum_values:
     - RichText
     - Image
+    - Drawing
   - name: x
     type: float
   - name: y
@@ -123,6 +125,7 @@ entities:
     enum_values:
     - ContentHeight
     - FixedAspect
+    - FixedSize
   - name: content_version
     type: uinteger
   - name: content_djot
@@ -136,6 +139,13 @@ entities:
     entity: Asset
     relationship: many_to_one
     optional: true
+  - name: description
+    type: string
+  - name: strokes
+    type: entity
+    entity: InkStroke
+    relationship: ordered_one_to_many
+    strong: true
 - name: Asset
   inherits_from: EntityBase
   undoable: true
@@ -151,6 +161,27 @@ entities:
     type: string
   - name: byte_length
     type: uinteger
+- name: InkStroke
+  inherits_from: EntityBase
+  undoable: true
+  single_model: false
+  fields:
+  - name: uid
+    type: uuid
+  - name: trashed
+    type: boolean
+  - name: sample_format_version
+    type: uinteger
+  - name: samples_json
+    type: string
+  - name: brush_version
+    type: uinteger
+  - name: brush_width
+    type: float
+  - name: brush_rgba
+    type: uinteger
+  - name: use_pressure
+    type: boolean
 features: []
 ui:
   rust_teksilo: true

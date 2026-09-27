@@ -1,0 +1,1562 @@
+use anyhow::{Context, Result};
+use common::{entities::BlockKind, types::EntityId};
+use noton_application::{LibraryService, save::SaveWorker};
+use noton_format::{Asset, LibraryFile};
+use std::sync::{
+    Arc,
+    atomic::{AtomicU64, Ordering},
+};
+use std::{
+    cell::{Cell, RefCell},
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+    rc::Rc,
+    time::{Duration, Instant},
+};
+use teksilo::{data::ListModel, prelude::*, widgets::rich_text::EditorHandle};
+use text_document::TextDocument;
+struct DocumentChanges {
+    revision: Arc<AtomicU64>,
+    _subscription: text_document::Subscription,
+}
+use unicode_normalization::{UnicodeNormalization, char::is_combining_mark};
+/// The first line of note text worth showing in a list, without markup.
+fn snippet(text: &str) -> Option<String> {
+    let line = text
+        .lines()
+        .map(|l| {
+            l.trim_start_matches(|c: char| "#>-*+|:0123456789.)".contains(c) || c.is_whitespace())
+                .replace(['*', '_', '|', '`'], " ")
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .find(|l| !l.is_empty())?;
+    Some(if line.chars().count() > 80 {
+        line.chars().take(79).chain(['…']).collect()
+    } else {
+        line
+    })
+}
+fn search_key(text: &str) -> String {
+    text.nfd()
+        .filter(|c| !is_combining_mark(*c))
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Row {
+    pub id: EntityId,
+    pub title: String,
+    pub trashed: bool,
+    /// Second line: a note's first words, its folder while searching, or "In trash".
+    pub subtitle: String,
+    /// Trailing meta: a folder's note count, a note's block count.
+    pub meta: String,
+    /// The note holds a sketch.
+    pub sketch: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SaveState {
+    Saved,
+    Unsaved,
+    Saving,
+    Failed,
+}
+
+/// What each undo scope would take back next, as translated phrases
+/// ("move block"). `None` when that scope has nothing to undo.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UndoInfo {
+    /// The focused scope is a text block; carries its label.
+    pub typing_in: Option<String>,
+    pub page_undo: Option<String>,
+    pub page_redo: Option<String>,
+    pub library_undo: Option<String>,
+    pub library_redo: Option<String>,
+    /// The focused scope is the folder and note lists.
+    pub library_focused: bool,
+}
+
+/// Formatting at the caret of the text block being edited, for the pressed
+/// state of the formatting toolbar.
+#[derive(Clone, Debug)]
+pub struct FormatState {
+    pub bold: Signal<bool>,
+    pub italic: Signal<bool>,
+    pub underline: Signal<bool>,
+    pub strike: Signal<bool>,
+    pub link: Signal<bool>,
+    /// The caret is in a table: row and column commands apply.
+    pub in_table: Signal<bool>,
+    /// 0 = paragraph, 1–3 = heading level.
+    pub heading: Signal<Option<u8>>,
+}
+impl Default for FormatState {
+    fn default() -> Self {
+        Self {
+            bold: Signal::new(false),
+            italic: Signal::new(false),
+            underline: Signal::new(false),
+            strike: Signal::new(false),
+            link: Signal::new(false),
+            in_table: Signal::new(false),
+            heading: Signal::new(Some(0)),
+        }
+    }
+}
+
+/// The live canvas camera. Rebuilt with each canvas; the values survive.
+#[derive(Clone, Debug)]
+pub struct Camera {
+    pub zoom: Signal<f32>,
+    pub pan_x: Signal<f32>,
+    pub pan_y: Signal<f32>,
+    pub viewport: Signal<Size>,
+}
+pub const MIN_ZOOM: f32 = 0.25;
+pub const MAX_ZOOM: f32 = 4.;
+#[derive(Clone)]
+pub struct SessionVm(pub Rc<Inner>);
+pub struct Inner {
+    pub service: LibraryService,
+    pub edit: crate::edit_vm::EditVm,
+    pub folder: Signal<Option<EntityId>>,
+    pub folder_trashed: Signal<bool>,
+    pub note_trashed: Signal<bool>,
+    pub navigation: Signal<usize>,
+    pub note: Signal<Option<EntityId>>,
+    pub folders: ListModel<Row>,
+    pub notes: ListModel<Row>,
+    pub title: Signal<String>,
+    pub query: Signal<String>,
+    pub reading: Signal<bool>,
+    pub trash: Signal<bool>,
+    pub revision: Signal<u64>,
+    /// Bumped by every refresh of the lists.
+    pub folders_version: Signal<u64>,
+    pub status: Signal<String>,
+    pub error: Signal<String>,
+    pub documents: RefCell<HashMap<EntityId, TextDocument>>,
+    flushed_revisions: RefCell<HashMap<EntityId, u64>>,
+    document_changes: RefCell<HashMap<EntityId, DocumentChanges>>,
+    pub handles: RefCell<HashMap<EntityId, EditorHandle>>,
+    pub pending: RefCell<HashSet<EntityId>>,
+    pub focus_observers: RefCell<HashMap<EntityId, teksilo::core::signal::ObserverHandle>>,
+    pub active_text: Cell<Option<EntityId>>,
+    pub active_block: Cell<Option<EntityId>>,
+    pub organization: u64,
+    pub page_stacks: RefCell<HashMap<EntityId, u64>>,
+    pub assets: RefCell<Vec<Asset>>,
+    pub worker: Option<SaveWorker>,
+    pub path: PathBuf,
+    pub prefs: RefCell<crate::settings::Preferences>,
+    /// The text block whose formatting toolbar is showing.
+    pub editing: Signal<Option<EntityId>>,
+    /// The sketch in drawing mode.
+    pub drawing: Signal<Option<EntityId>>,
+    /// The block selected on the canvas.
+    pub selected: Signal<Option<EntityId>>,
+    pub save_state: Signal<SaveState>,
+    pub saved_at: Signal<String>,
+    pub undo_info: Signal<UndoInfo>,
+    pub camera: RefCell<Option<Camera>>,
+    /// The canvas zoom, mirrored for the status bar.
+    pub zoom: Signal<f32>,
+    /// Camera values carried across canvas rebuilds of the same note.
+    pub kept_camera: Cell<Option<(EntityId, f32, f32, f32)>>,
+    /// The note title is being edited in the note header.
+    pub renaming_note: Signal<bool>,
+    pub renaming_folder: Signal<Option<EntityId>>,
+    /// The inline rename's text, kept across the row's rebuilds.
+    pub folder_rename: RefCell<Option<(EntityId, Signal<String>)>>,
+    /// The inline rename field has had its one focus request.
+    pub folder_rename_focused: Rc<Cell<bool>>,
+    /// The window is narrower than the three-pane layout.
+    pub narrow: Signal<bool>,
+    /// The narrow-window offer to read the note is showing (not dismissed).
+    pub narrow_hint: Signal<bool>,
+    /// A trash that can still be undone from the snackbar: (stack, command, message).
+    pub undo_toast: Signal<Option<(u64, u64, String)>>,
+    pub search_field: Cell<Option<teksilo::core::WidgetId>>,
+    /// The block the next "block.position" / "block.describe" dialog is for.
+    pub dialog_block: Cell<Option<EntityId>>,
+    pub format: FormatState,
+    pub ink: crate::page::ink::InkTools,
+    /// The caret moved or the format changed; the toolbar syncs on the next tick.
+    pub format_dirty: Cell<bool>,
+    /// The canvas on screen, when the note is shown as a canvas.
+    pub scene: RefCell<Option<crate::page::LiveScene>>,
+    /// Zoom this note's canvas to fit once it is on screen (narrow windows).
+    pub fit_pending: Cell<Option<EntityId>>,
+    /// The canvas on screen is waiting for its first fit, with the viewport
+    /// width seen at the last tick: fit once the panes stop moving.
+    fit_armed: Cell<Option<f32>>,
+    /// Caret observers of each live editor, replaced when it is rebuilt.
+    pub format_observers: RefCell<HashMap<EntityId, Vec<teksilo::core::signal::ObserverHandle>>>,
+    /// Observers that live as long as the window: dropping one unsubscribes it.
+    pub observers: RefCell<Vec<teksilo::core::signal::ObserverHandle>>,
+    save_failed: Cell<bool>,
+    seq: Cell<u64>,
+    saved: Cell<u64>,
+    inflight: Cell<Option<u64>>,
+    last_edit: Cell<Instant>,
+    first_edit: Cell<Option<Instant>>,
+}
+impl std::fmt::Debug for SessionVm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SessionVm").finish_non_exhaustive()
+    }
+}
+impl SessionVm {
+    pub fn open(path: PathBuf) -> Result<Self> {
+        let exists = path.exists();
+        let mut file = LibraryFile::open(&path, true)?;
+        let data = if exists {
+            file.load()?
+        } else {
+            noton_format::Library::empty("Noton".into())
+        };
+        if !exists {
+            file.save(&data)?;
+        }
+        let service = LibraryService::load(&data)?;
+        Self::from_service(service, data.assets, Some(SaveWorker::start(file)), path)
+    }
+    pub fn memory() -> Result<Self> {
+        Self::from_service(
+            LibraryService::new("Noton".into())?,
+            vec![],
+            None,
+            PathBuf::new(),
+        )
+    }
+    fn from_service(
+        service: LibraryService,
+        assets: Vec<Asset>,
+        worker: Option<SaveWorker>,
+        path: PathBuf,
+    ) -> Result<Self> {
+        let organization = service.new_stack();
+        let prefs = crate::settings::load().unwrap_or_default();
+        let now = Instant::now();
+        let vm = Self(Rc::new(Inner {
+            service,
+            edit: crate::edit_vm::EditVm::default(),
+            folder: Signal::new(None),
+            folder_trashed: Signal::new(false),
+            note_trashed: Signal::new(false),
+            navigation: Signal::new(0),
+            note: Signal::new(None),
+            folders: ListModel::from_vec(vec![]),
+            notes: ListModel::from_vec(vec![]),
+            title: Signal::new(String::new()),
+            query: Signal::new(String::new()),
+            reading: Signal::new(false),
+            trash: Signal::new(false),
+            revision: Signal::new(0),
+            folders_version: Signal::new(0),
+            status: Signal::new(tr!(saved()).resolve_now()),
+            error: Signal::new(String::new()),
+            documents: RefCell::new(HashMap::new()),
+            flushed_revisions: RefCell::new(HashMap::new()),
+            document_changes: RefCell::new(HashMap::new()),
+            handles: RefCell::new(HashMap::new()),
+            pending: RefCell::new(HashSet::new()),
+            focus_observers: RefCell::new(HashMap::new()),
+            active_text: Cell::new(None),
+            active_block: Cell::new(None),
+            organization,
+            page_stacks: RefCell::new(HashMap::new()),
+            assets: RefCell::new(assets),
+            worker,
+            path,
+            narrow_hint: Signal::new(!prefs.narrow_hint_dismissed),
+            prefs: RefCell::new(prefs),
+            editing: Signal::new(None),
+            drawing: Signal::new(None),
+            selected: Signal::new(None),
+            save_state: Signal::new(SaveState::Saved),
+            saved_at: Signal::new(String::new()),
+            undo_info: Signal::new(UndoInfo::default()),
+            camera: RefCell::new(None),
+            zoom: Signal::new(1.),
+            kept_camera: Cell::new(None),
+            renaming_note: Signal::new(false),
+            renaming_folder: Signal::new(None),
+            folder_rename: RefCell::new(None),
+            folder_rename_focused: Rc::new(Cell::new(false)),
+            narrow: Signal::new(false),
+            undo_toast: Signal::new(None),
+            search_field: Cell::new(None),
+            dialog_block: Cell::new(None),
+            observers: RefCell::new(vec![]),
+            format: FormatState::default(),
+            ink: Default::default(),
+            format_dirty: Cell::new(false),
+            scene: RefCell::new(None),
+            fit_pending: Cell::new(None),
+            fit_armed: Cell::new(None),
+            format_observers: RefCell::new(HashMap::new()),
+            save_failed: Cell::new(false),
+            seq: Cell::new(0),
+            saved: Cell::new(0),
+            inflight: Cell::new(None),
+            last_edit: Cell::new(now),
+            first_edit: Cell::new(None),
+        }));
+        vm.refresh()?;
+        Ok(vm)
+    }
+    pub fn report(&self, result: Result<()>) {
+        if let Err(e) = result {
+            self.0
+                .error
+                .set(format!("{}: {e:#}", tr!(error()).resolve_now()));
+        }
+    }
+    pub fn changed(&self) {
+        self.0.seq.set(self.0.seq.get() + 1);
+        self.0.last_edit.set(Instant::now());
+        if self.0.first_edit.get().is_none() {
+            self.0.first_edit.set(Some(Instant::now()));
+        }
+        self.0.status.set(tr!(unsaved()).resolve_now());
+        if !self.0.save_failed.get() {
+            self.0.save_state.set(SaveState::Unsaved);
+        }
+    }
+    pub fn rebuild_page(&self) {
+        self.keep_camera();
+        self.0.revision.set(self.0.revision.get() + 1);
+    }
+    pub fn page_stack(&self) -> Result<u64> {
+        let note = self.0.note.get().context("No selected note")?;
+        Ok(*self
+            .0
+            .page_stacks
+            .borrow_mut()
+            .entry(note)
+            .or_insert_with(|| self.0.service.new_stack()))
+    }
+    pub fn refresh(&self) -> Result<()> {
+        let show_trash = self.0.trash.get();
+        let all = self.0.service.folders()?;
+        let mut folders = vec![];
+        for f in all.iter().filter(|f| show_trash || !f.trashed) {
+            let live = self
+                .0
+                .service
+                .notes(f.id)?
+                .iter()
+                .filter(|n| show_trash || !n.trashed)
+                .count();
+            folders.push(Row {
+                id: f.id,
+                title: f.title.clone(),
+                trashed: f.trashed,
+                subtitle: if f.trashed {
+                    tr!(in_trash()).resolve_now()
+                } else {
+                    String::new()
+                },
+                meta: live.to_string(),
+                sketch: false,
+            });
+        }
+        if !folders.iter().any(|f| Some(f.id) == self.0.folder.get()) {
+            self.0.folder.set(folders.first().map(|r| r.id));
+        }
+        self.0.folders.replace_all(folders);
+        let query = search_key(&self.0.query.get());
+        let mut notes = vec![];
+        for f in all.iter().filter(|f| show_trash || !f.trashed) {
+            if query.is_empty() && Some(f.id) != self.0.folder.get() {
+                continue;
+            }
+            for n in self.0.service.notes(f.id)? {
+                if !(show_trash || !n.trashed) {
+                    continue;
+                }
+                let blocks: Vec<_> = self
+                    .0
+                    .service
+                    .blocks(n.id)?
+                    .into_iter()
+                    .filter(|b| show_trash || !b.trashed)
+                    .collect();
+                let text = |b: &common::entities::Block| {
+                    self.0
+                        .documents
+                        .borrow()
+                        .get(&b.id)
+                        .and_then(|d| d.to_plain_text().ok())
+                        .unwrap_or_else(|| b.content_djot.clone())
+                };
+                let matched = query.is_empty()
+                    || search_key(&n.title).contains(&query)
+                    || blocks.iter().any(|b| {
+                        search_key(&b.label).contains(&query)
+                            || search_key(&b.description).contains(&query)
+                            || search_key(&b.alt_text).contains(&query)
+                            || search_key(&text(b)).contains(&query)
+                    });
+                if !matched {
+                    continue;
+                }
+                let trashed = n.trashed || f.trashed;
+                let subtitle = if trashed {
+                    tr!(in_trash()).resolve_now()
+                } else if !query.is_empty() {
+                    f.title.clone()
+                } else {
+                    blocks
+                        .iter()
+                        .find_map(|b| match b.kind {
+                            BlockKind::RichText => snippet(&text(b)),
+                            BlockKind::Drawing if !b.description.is_empty() => {
+                                snippet(&b.description)
+                            }
+                            _ => None,
+                        })
+                        .unwrap_or_default()
+                };
+                notes.push(Row {
+                    id: n.id,
+                    title: n.title,
+                    trashed,
+                    subtitle,
+                    meta: tr!(block_count(count = blocks.len() as i64)).resolve_now(),
+                    sketch: blocks.iter().any(|b| b.kind == BlockKind::Drawing),
+                });
+            }
+        }
+        if !notes.iter().any(|n| Some(n.id) == self.0.note.get()) {
+            self.select_note(notes.first().map(|r| r.id))?;
+        }
+        self.0.notes.replace_all(notes);
+        self.0.folder_trashed.set(
+            self.0
+                .folder
+                .get()
+                .and_then(|id| self.0.service.folder(id).ok())
+                .is_some_and(|f| f.trashed),
+        );
+        self.0.note_trashed.set(
+            self.0
+                .note
+                .get()
+                .and_then(|id| self.0.service.note(id).ok())
+                .is_some_and(|n| n.trashed),
+        );
+        self.0.folders_version.set(self.0.folders_version.get() + 1);
+        Ok(())
+    }
+    pub fn select_folder(&self, id: EntityId) -> Result<()> {
+        if self.0.renaming_folder.get().is_some_and(|r| r != id) {
+            self.commit_folder_rename()?;
+        }
+        self.0.navigation.set(1);
+        self.flush()?;
+        self.0.edit.claim_structure(true);
+        self.0.folder.set(Some(id));
+        self.refresh()
+    }
+    pub fn select_note(&self, id: Option<EntityId>) -> Result<()> {
+        if id.is_some() {
+            self.0.navigation.set(2);
+        }
+        self.flush()?;
+        // Keep an unsubmitted title edit of the note being left.
+        self.rename_note()?;
+        self.0.edit.claim_structure(false);
+        if self.0.note.get() != id {
+            self.0.editing.set(None);
+            self.0.drawing.set(None);
+            self.0.selected.set(None);
+            self.0.renaming_note.set(false);
+            self.0.undo_toast.set(None);
+            self.0
+                .reading
+                .set(self.0.prefs.borrow().default_view == crate::settings::DefaultView::Reading);
+            self.0.fit_pending.set(id.filter(|_| self.0.narrow.get()));
+        }
+        self.0.note.set(id);
+        self.0.active_text.set(None);
+        self.0.active_block.set(None);
+        self.0.title.set(match id {
+            Some(id) => self.0.service.note(id)?.title,
+            None => String::new(),
+        });
+        self.rebuild_page();
+        Ok(())
+    }
+    pub fn new_folder(&self) -> Result<()> {
+        self.commit_folder_rename()?;
+        let id = self
+            .0
+            .service
+            .create_folder(tr!(new_folder()).resolve_now(), self.0.organization)?;
+        self.0.edit.claim_structure(true);
+        self.0.folder.set(Some(id));
+        self.changed();
+        self.refresh()
+    }
+    pub fn new_note(&self) -> Result<()> {
+        self.commit_folder_rename()?;
+        let folder = self.0.folder.get().context("Create a folder first")?;
+        let id = self.0.service.create_note(
+            folder,
+            tr!(new_note()).resolve_now(),
+            self.0.organization,
+        )?;
+        self.changed();
+        self.refresh()?;
+        self.select_note(Some(id))
+    }
+    pub fn insert(&self, kind: BlockKind) -> Result<()> {
+        let note = self.0.note.get().context("Select a note")?;
+        let label = if kind == BlockKind::Drawing {
+            tr!(new_sketch()).resolve_now()
+        } else {
+            tr!(new_text()).resolve_now()
+        };
+        let (w, h) = LibraryService::default_size(&kind);
+        // Wrap rows at the canvas's visible width, in scene units.
+        let row_limit = self
+            .0
+            .camera
+            .borrow()
+            .as_ref()
+            .map(|c| {
+                let v = c.viewport.get();
+                ((v.width - c.pan_x.get()) / c.zoom.get().max(0.01)) as f64 - 24.
+            })
+            .filter(|w| *w > 200.)
+            .unwrap_or(1200.);
+        let spot = LibraryService::free_spot_among(&self.block_rects(note)?, w, h, row_limit);
+        let id = self
+            .0
+            .service
+            .create_block_at(note, kind, label, spot, self.page_stack()?)?;
+        self.0.edit.claim_structure(false);
+        self.0.active_block.set(Some(id));
+        self.0.selected.set(Some(id));
+        self.changed();
+        self.refresh()?;
+        self.rebuild_page();
+        Ok(())
+    }
+    /// Where each live block of `note` is, as laid out on the canvas when it
+    /// is on screen: a text block's height follows its words, not the store.
+    pub fn block_rects(&self, note: EntityId) -> Result<Vec<(f64, f64, f64, f64)>> {
+        let scene = self.0.scene.borrow();
+        Ok(self
+            .0
+            .service
+            .blocks(note)?
+            .into_iter()
+            .filter(|b| !b.trashed)
+            .map(|b| {
+                scene
+                    .as_ref()
+                    .and_then(|s| s.items.get(&b.id).and_then(|i| s.model.scene_rect(*i)))
+                    .map(|r| (r.x as f64, r.y as f64, r.width as f64, r.height as f64))
+                    .unwrap_or((b.x, b.y, b.width, b.height))
+            })
+            .collect())
+    }
+    pub fn rename_note(&self) -> Result<()> {
+        if let Some(id) = self.0.note.get() {
+            if self.0.service.note(id)?.title != self.0.title.get() {
+                self.0
+                    .service
+                    .rename_note(id, self.0.title.get(), self.0.organization)?;
+                self.changed();
+                self.refresh()?;
+            }
+        }
+        Ok(())
+    }
+    pub fn document(&self, id: EntityId) -> Result<TextDocument> {
+        if let Some(doc) = self.0.documents.borrow().get(&id) {
+            return Ok(doc.clone());
+        }
+        let block = self.0.service.block(id)?;
+        let doc = TextDocument::new();
+        doc.set_djot_sync(&block.content_djot)?;
+        let revision = Arc::new(AtomicU64::new(0));
+        let counter = revision.clone();
+        let subscription = doc.on_change(move |event| {
+            use text_document::DocumentEvent::*;
+            if matches!(
+                event,
+                ContentsChanged { .. }
+                    | FormatChanged { .. }
+                    | DocumentReset
+                    | UndoRedoChanged { .. }
+                    | FlowElementsInserted { .. }
+                    | FlowElementsRemoved { .. }
+            ) {
+                counter.fetch_add(1, Ordering::Relaxed);
+            }
+        });
+        self.0.document_changes.borrow_mut().insert(
+            id,
+            DocumentChanges {
+                revision,
+                _subscription: subscription,
+            },
+        );
+        self.0.flushed_revisions.borrow_mut().insert(id, 0);
+        self.0.documents.borrow_mut().insert(id, doc.clone());
+        Ok(doc)
+    }
+    pub fn flush(&self) -> Result<()> {
+        // Editor on_change is a user-input notification, not a complete
+        // durability boundary: toolbar formatting and history also mutate
+        // document content. Compare revisions before exporting any snapshot.
+        for (id, changes) in self.0.document_changes.borrow().iter() {
+            if self.0.flushed_revisions.borrow().get(id).copied()
+                != Some(changes.revision.load(Ordering::Relaxed))
+            {
+                self.0.pending.borrow_mut().insert(*id);
+            }
+        }
+        let pending: Vec<_> = self.0.pending.borrow().iter().copied().collect();
+        for id in pending {
+            if self
+                .0
+                .handles
+                .borrow()
+                .get(&id)
+                .is_some_and(|h| h.is_composing())
+            {
+                continue;
+            }
+            let revision = self
+                .0
+                .document_changes
+                .borrow()
+                .get(&id)
+                .context("Missing document subscription")?
+                .revision
+                .load(Ordering::Relaxed);
+            let text = self
+                .0
+                .documents
+                .borrow()
+                .get(&id)
+                .context("Missing live document")?
+                .to_djot()?;
+            if self.0.service.flush_text(id, text)? {
+                self.changed();
+            }
+            self.0.flushed_revisions.borrow_mut().insert(id, revision);
+            self.0.pending.borrow_mut().remove(&id);
+        }
+        Ok(())
+    }
+    pub fn tick(&self) -> Result<()> {
+        self.flush()?;
+        if let Some(worker) = &self.0.worker {
+            while let Some(reply) = worker.poll() {
+                if reply.sequence.is_some() {
+                    self.0.inflight.set(None);
+                }
+                match reply.result {
+                    Ok(()) => {
+                        if let Some(sequence) = reply.sequence {
+                            self.0.saved.set(self.0.saved.get().max(sequence));
+                        }
+                    }
+                    Err(e) => {
+                        self.0.save_failed.set(true);
+                        self.0.save_state.set(SaveState::Failed);
+                        self.0.status.set(tr!(save_failed()).resolve_now());
+                        return Err(e);
+                    }
+                }
+            }
+        }
+        self.refresh_undo_info();
+        if self.0.format_dirty.replace(false) {
+            self.sync_format();
+        }
+        // Fit a narrow window's canvas once it has been laid out, outside layout.
+        if let Some(last) = self.0.fit_armed.get() {
+            let width = self
+                .0
+                .camera
+                .borrow()
+                .as_ref()
+                .map(|c| c.viewport.get().width)
+                .unwrap_or(0.);
+            if width > 0. && (width - last).abs() < 0.5 {
+                self.0.fit_armed.set(None);
+                self.zoom_to_fit()?;
+            } else {
+                self.0.fit_armed.set(Some(width));
+            }
+        }
+        if self.0.saved.get() == self.0.seq.get() {
+            self.0.first_edit.set(None);
+            if self.0.save_state.get() != SaveState::Saved {
+                self.0
+                    .saved_at
+                    .set(chrono::Local::now().format("%H:%M").to_string());
+                self.0.save_state.set(SaveState::Saved);
+            }
+            self.0.status.set(tr!(saved()).resolve_now());
+        } else if !self.0.save_failed.get()
+            && self.0.inflight.get().is_none()
+            && (self.0.last_edit.get().elapsed() >= Duration::from_millis(750)
+                || self
+                    .0
+                    .first_edit
+                    .get()
+                    .is_some_and(|t| t.elapsed() >= Duration::from_secs(5)))
+        {
+            self.save()?;
+        }
+        Ok(())
+    }
+    pub fn save(&self) -> Result<()> {
+        self.0.save_failed.set(false);
+        if self.0.save_state.get() == SaveState::Failed {
+            self.0.save_state.set(SaveState::Unsaved);
+        }
+        self.flush()?;
+        self.rename_note()?;
+        if self.0.inflight.get().is_some() {
+            return Ok(());
+        }
+        if let Some(worker) = &self.0.worker {
+            let seq = self.0.seq.get();
+            worker.save(
+                seq,
+                self.0.service.snapshot(self.0.assets.borrow().clone())?,
+            )?;
+            self.0.inflight.set(Some(seq));
+            self.0.save_state.set(SaveState::Saving);
+            self.0.status.set(tr!(saving()).resolve_now());
+        }
+        Ok(())
+    }
+    pub fn close(&self) -> Result<()> {
+        self.flush()?;
+        anyhow::ensure!(
+            self.0.pending.borrow().is_empty(),
+            "Finish text composition before closing"
+        );
+        self.rename_note()?;
+        if let Some(worker) = &self.0.worker {
+            if self.0.inflight.get().is_some() {
+                let reply = worker.wait()?;
+                self.0.inflight.set(None);
+                reply.result?;
+                if let Some(sequence) = reply.sequence {
+                    self.0.saved.set(sequence);
+                }
+            }
+            if self.0.saved.get() < self.0.seq.get() {
+                self.save()?;
+                let reply = worker.wait()?;
+                self.0.inflight.set(None);
+                reply.result?;
+                if let Some(sequence) = reply.sequence {
+                    self.0.saved.set(sequence);
+                }
+            }
+        }
+        Ok(())
+    }
+    pub fn undo(&self, redo: bool, organization: bool) -> Result<()> {
+        self.flush()?;
+        let stack = if organization {
+            self.0.organization
+        } else {
+            self.page_stack()?
+        };
+        if redo {
+            self.0.service.redo(stack)?
+        } else {
+            self.0.service.undo(stack)?
+        };
+        self.changed();
+        self.refresh()?;
+        self.rebuild_page();
+        Ok(())
+    }
+    /// Back up to the chosen folder (next to the library by default), then
+    /// delete this library's oldest backups beyond the number kept.
+    pub fn backup(&self) -> Result<()> {
+        self.close()?;
+        if let Some(w) = &self.0.worker {
+            let (dir, keep) = {
+                let prefs = self.0.prefs.borrow();
+                (prefs.backup_dir.clone(), prefs.backup_keep)
+            };
+            let stem = self
+                .0
+                .path
+                .file_stem()
+                .context("Library has no name")?
+                .to_string_lossy()
+                .into_owned();
+            let dir = dir
+                .or_else(|| self.0.path.parent().map(|p| p.to_path_buf()))
+                .context("No backup folder")?;
+            let path = dir.join(format!(
+                "{stem}.{}.noton",
+                chrono::Utc::now().format("%Y%m%dT%H%M%S%.3f")
+            ));
+            w.backup(path)?;
+            w.wait()?.result?;
+            if keep > 0 {
+                let prefix = format!("{stem}.");
+                let mut backups: Vec<_> = std::fs::read_dir(&dir)?
+                    .filter_map(|e| e.ok().map(|e| e.path()))
+                    .filter(|p| {
+                        p != &self.0.path
+                            && p.extension().is_some_and(|e| e == "noton")
+                            && p.file_name().is_some_and(|n| {
+                                let n = n.to_string_lossy();
+                                n.starts_with(&prefix)
+                                    && n[prefix.len()..].starts_with(|c: char| c.is_ascii_digit())
+                            })
+                    })
+                    .collect();
+                backups.sort();
+                let excess = backups.len().saturating_sub(keep as usize);
+                for old in &backups[..excess] {
+                    std::fs::remove_file(old)?;
+                }
+            }
+        }
+        Ok(())
+    }
+    /// Write the library to `path` while the save to the library file keeps failing.
+    pub fn save_copy(&self, path: &std::path::Path) -> Result<()> {
+        self.flush()?;
+        let mut file = LibraryFile::open(path, true)?;
+        file.save(&self.0.service.snapshot(self.0.assets.borrow().clone())?)?;
+        Ok(())
+    }
+    pub fn move_note(&self) -> Result<()> {
+        let note = self.0.note.get().context("Select a note")?;
+        let fs: Vec<_> = self
+            .0
+            .service
+            .folders()?
+            .into_iter()
+            .filter(|f| !f.trashed)
+            .collect();
+        let pos = fs
+            .iter()
+            .position(|f| f.notes.contains(&note))
+            .context("Missing note owner")?;
+        anyhow::ensure!(fs.len() > 1, "Create another folder first");
+        self.0
+            .service
+            .move_note(note, fs[(pos + 1) % fs.len()].id, self.0.organization)?;
+        self.changed();
+        self.refresh()
+    }
+}
+impl SessionVm {
+    pub fn import_image(&self, path: &std::path::Path) -> Result<()> {
+        anyhow::ensure!(
+            std::fs::metadata(path)?.len() <= 100 * 1024 * 1024,
+            "Image exceeds 100 MiB"
+        );
+        let bytes = std::fs::read(path)?;
+        let image = teksilo::canvas::RasterIcon::decode(&bytes)?;
+        anyhow::ensure!(
+            image.width() <= 16000 && image.height() <= 16000,
+            "Image dimensions exceed 16000 pixels"
+        );
+        let mime = teksilo::canvas::ImageFormat::sniff(&bytes)
+            .context("Unsupported image format")?
+            .mime_type()
+            .to_owned();
+        let asset = Asset {
+            uid: uuid::Uuid::new_v4(),
+            name: path
+                .file_name()
+                .context("Missing image name")?
+                .to_string_lossy()
+                .into_owned(),
+            mime,
+            digest: blake3::hash(&bytes).to_hex().to_string(),
+            bytes,
+        };
+        let note = self.0.note.get().context("Select a note")?;
+        self.0.service.insert_image(
+            note,
+            &asset,
+            image.width() as f64,
+            image.height() as f64,
+            self.page_stack()?,
+        )?;
+        self.0.assets.borrow_mut().push(asset);
+        self.changed();
+        self.refresh()?;
+        self.rebuild_page();
+        Ok(())
+    }
+    pub fn export_note(&self, path: &std::path::Path, html: bool) -> Result<()> {
+        self.flush()?;
+        let note = self
+            .0
+            .service
+            .note(self.0.note.get().context("Select a note")?)?;
+        fn escape(s: &str) -> String {
+            s.replace('&', "&amp;")
+                .replace('<', "&lt;")
+                .replace('>', "&gt;")
+                .replace('"', "&quot;")
+        }
+        let mut out = if html {
+            format!(
+                "<!doctype html><html><head><meta charset=\"utf-8\"><title>{}</title></head><body><h1>{}</h1>\n",
+                escape(&note.title),
+                escape(&note.title)
+            )
+        } else {
+            format!("{}\n\n", note.title)
+        };
+        for b in self
+            .0
+            .service
+            .blocks(note.id)?
+            .into_iter()
+            .filter(|b| !b.trashed)
+        {
+            match b.kind {
+                BlockKind::RichText => {
+                    let doc = self.document(b.id)?;
+                    out.push_str(&if html {
+                        doc.to_html()?
+                    } else {
+                        doc.to_plain_text()?
+                    });
+                }
+                BlockKind::Image => {
+                    if html {
+                        let snapshot = self.0.service.snapshot(self.0.assets.borrow().clone())?;
+                        if let Some(block) = snapshot
+                            .folders
+                            .iter()
+                            .flat_map(|f| &f.notes)
+                            .flat_map(|n| &n.blocks)
+                            .find(|x| x.uid == b.uid)
+                        {
+                            if let noton_format::Content::Image { asset, .. } = &block.content {
+                                let assets = self.0.assets.borrow();
+                                let a = assets
+                                    .iter()
+                                    .find(|a| a.uid == *asset)
+                                    .context("Missing image")?;
+                                use base64::Engine;
+                                out.push_str(&format!(
+                                    "<img alt=\"{}\" src=\"data:{};base64,{}\">",
+                                    escape(&b.alt_text),
+                                    a.mime,
+                                    base64::engine::general_purpose::STANDARD.encode(&a.bytes)
+                                ));
+                            }
+                        }
+                    } else {
+                        out.push_str(&b.alt_text);
+                    }
+                }
+                BlockKind::Drawing => {
+                    if html {
+                        out.push_str(&format!("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 560 320\" role=\"img\"><title>{}</title>",escape(&b.description)));
+                        for id in b.strokes {
+                            let s = self.0.service.ink_stroke(id)?;
+                            if !s.trashed {
+                                let samples: Vec<noton_format::Sample> =
+                                    serde_json::from_str(&s.samples_json)?;
+                                let points = samples
+                                    .iter()
+                                    .map(|p| format!("{},{}", p.x, p.y))
+                                    .collect::<Vec<_>>()
+                                    .join(" ");
+                                out.push_str(&format!("<polyline points=\"{points}\" fill=\"none\" stroke=\"#202830\" stroke-width=\"{}\"/>",s.brush_width));
+                            }
+                        }
+                        out.push_str("</svg>");
+                    } else {
+                        out.push_str(&b.description);
+                    }
+                }
+            }
+            out.push('\n');
+        }
+        if html {
+            out.push_str("</body></html>\n");
+        }
+        // Native save dialogs authorize replacement. A same-directory temporary file
+        // is synced before the destination is replaced.
+        let mut file =
+            tempfile::NamedTempFile::new_in(path.parent().unwrap_or(std::path::Path::new(".")))?;
+        use std::io::Write;
+        file.write_all(out.as_bytes())?;
+        file.as_file().sync_all()?;
+        file.persist(path)?;
+        Ok(())
+    }
+}
+
+/// The translated phrase for an undo command key: "move block", "rename folder".
+pub fn undo_phrase(key: &str) -> String {
+    match key {
+        "create_block" | "insert_image" => tr!(undo_insert_block()),
+        "move_block" | "transform_blocks" => tr!(undo_move_block()),
+        "bring_to_front" | "send_to_back" => tr!(undo_arrange_block()),
+        "duplicate_block" => tr!(undo_duplicate_block()),
+        "rename_block" => tr!(undo_rename_block()),
+        "trash_block" => tr!(undo_trash_block()),
+        "describe_sketch" => tr!(undo_describe_sketch()),
+        "edit_alt_text" => tr!(undo_edit_alt_text()),
+        "reorder_block" => tr!(undo_reorder_block()),
+        "draw_stroke" => tr!(undo_draw_stroke()),
+        "erase_strokes" => tr!(undo_erase_strokes()),
+        "create_folder" => tr!(undo_create_folder()),
+        "rename_folder" => tr!(undo_rename_folder()),
+        "trash_folder" => tr!(undo_trash_folder()),
+        "create_note" => tr!(undo_create_note()),
+        "rename_note" => tr!(undo_rename_note()),
+        "trash_note" => tr!(undo_trash_note()),
+        "move_note" => tr!(undo_move_note()),
+        "reorder_folder" => tr!(undo_reorder_folders()),
+        "reorder_note" => tr!(undo_reorder_notes()),
+        _ => tr!(undo_change()),
+    }
+    .resolve_now()
+}
+impl SessionVm {
+    /// The editor of the text block being edited.
+    pub fn editing_handle(&self) -> Option<EditorHandle> {
+        let id = self.0.editing.get()?;
+        self.0.handles.borrow().get(&id).cloned()
+    }
+    /// Mirror the caret's formatting into the toolbar's pressed states.
+    pub fn sync_format(&self) {
+        let Some(h) = self.editing_handle() else {
+            return;
+        };
+        let f = &self.0.format;
+        let set = |s: &Signal<bool>, v: bool| {
+            if s.get() != v {
+                s.set(v)
+            }
+        };
+        set(&f.bold, h.is_bold());
+        set(&f.italic, h.is_italic());
+        set(&f.underline, h.is_underline());
+        set(&f.strike, h.is_strikethrough());
+        set(&f.link, h.is_link());
+        set(&f.in_table, h.is_in_table());
+        let level = Some(h.get_heading_level().min(3));
+        if f.heading.get() != level {
+            f.heading.set(level);
+        }
+    }
+    /// Put a sketch in drawing mode: its tools replace the formatting toolbar.
+    pub fn enter_drawing(&self, id: EntityId) {
+        self.0.editing.set(None);
+        self.0.selected.set(Some(id));
+        self.0.drawing.set(Some(id));
+        self.0.edit.claim_structure(false);
+        self.rebuild_page();
+    }
+    pub fn leave_drawing(&self) {
+        if self.0.drawing.get().is_some() {
+            self.0.drawing.set(None);
+            self.rebuild_page();
+        }
+    }
+    /// Keep an observer for the life of the window.
+    pub fn keep(&self, handle: teksilo::core::signal::ObserverHandle) {
+        self.0.observers.borrow_mut().push(handle);
+    }
+    pub fn refresh_undo_info(&self) {
+        let page = self
+            .0
+            .note
+            .get()
+            .and_then(|n| self.0.page_stacks.borrow().get(&n).copied());
+        let (typing, library) = self.0.edit.target();
+        // An empty label means a plain field (rename, search) has the keyboard.
+        // The block last typed in: stable while a menu has the focus, so the
+        // Edit menu is not rebuilt (and closed) as it opens.
+        let typing_in = typing.then(|| {
+            self.0
+                .active_text
+                .get()
+                .and_then(|id| self.0.service.block(id).ok())
+                .map(|b| b.label)
+                .unwrap_or_default()
+        });
+        let info = UndoInfo {
+            typing_in,
+            page_undo: page
+                .and_then(|s| self.0.service.undo_label(s))
+                .map(undo_phrase),
+            page_redo: page
+                .and_then(|s| self.0.service.redo_label(s))
+                .map(undo_phrase),
+            library_undo: self
+                .0
+                .service
+                .undo_label(self.0.organization)
+                .map(undo_phrase),
+            library_redo: self
+                .0
+                .service
+                .redo_label(self.0.organization)
+                .map(undo_phrase),
+            library_focused: library,
+        };
+        if self.0.undo_info.get() != info {
+            self.0.undo_info.set(info);
+        }
+    }
+    /// Start the camera of a new canvas from where the last one of this note was.
+    pub fn attach_camera(&self, camera: Camera) {
+        let note = self.0.note.get();
+        if let (Some(note), Some((kept, zoom, x, y))) = (note, self.0.kept_camera.get()) {
+            if kept == note {
+                camera.zoom.set(zoom);
+                camera.pan_x.set(x);
+                camera.pan_y.set(y);
+            }
+        }
+        self.0.zoom.set(camera.zoom.get());
+        *self.0.camera.borrow_mut() = Some(camera);
+        if note.is_some() && self.0.fit_pending.get() == note {
+            self.0.fit_pending.set(None);
+            self.0.fit_armed.set(Some(-1.));
+        }
+    }
+    /// Remember the camera before the canvas is rebuilt.
+    pub fn keep_camera(&self) {
+        if let (Some(note), Some(c)) = (self.0.note.get(), self.0.camera.borrow().as_ref()) {
+            self.0
+                .kept_camera
+                .set(Some((note, c.zoom.get(), c.pan_x.get(), c.pan_y.get())));
+        }
+    }
+    /// Zoom about the centre of the viewport.
+    pub fn zoom_to(&self, zoom: f32) {
+        if let Some(c) = self.0.camera.borrow().as_ref() {
+            let zoom = zoom.clamp(MIN_ZOOM, MAX_ZOOM);
+            let old = c.zoom.get();
+            let v = c.viewport.get();
+            let (cx, cy) = (v.width / 2., v.height / 2.);
+            // Keep the scene point under the centre fixed: view = scale * scene + pan.
+            c.pan_x.set(cx - (cx - c.pan_x.get()) * zoom / old);
+            c.pan_y.set(cy - (cy - c.pan_y.get()) * zoom / old);
+            c.zoom.set(zoom);
+            self.0.zoom.set(zoom);
+        }
+    }
+    pub fn zoom_step(&self, zoom_in: bool) {
+        const STEPS: [f32; 11] = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1., 1.25, 1.5, 2., 3.];
+        let z = self.0.zoom.get();
+        let next = if zoom_in {
+            STEPS
+                .iter()
+                .copied()
+                .find(|s| *s > z + 0.01)
+                .unwrap_or(MAX_ZOOM)
+        } else {
+            STEPS
+                .iter()
+                .rev()
+                .copied()
+                .find(|s| *s < z - 0.01)
+                .unwrap_or(MIN_ZOOM)
+        };
+        self.zoom_to(next);
+    }
+    /// Frame every block of the note, never above 100 %.
+    pub fn zoom_to_fit(&self) -> Result<()> {
+        let Some(note) = self.0.note.get() else {
+            return Ok(());
+        };
+        let blocks: Vec<_> = self
+            .0
+            .service
+            .blocks(note)?
+            .into_iter()
+            .filter(|b| !b.trashed)
+            .collect();
+        let Some(c) = self.0.camera.borrow().clone() else {
+            return Ok(());
+        };
+        if blocks.is_empty() {
+            c.zoom.set(1.);
+            c.pan_x.set(0.);
+            c.pan_y.set(0.);
+            self.0.zoom.set(1.);
+            return Ok(());
+        }
+        let x0 = blocks.iter().map(|b| b.x).fold(f64::MAX, f64::min) as f32;
+        let y0 = blocks.iter().map(|b| b.y).fold(f64::MAX, f64::min) as f32;
+        let x1 = blocks
+            .iter()
+            .map(|b| b.x + b.width)
+            .fold(f64::MIN, f64::max) as f32;
+        let y1 = blocks
+            .iter()
+            .map(|b| b.y + b.height)
+            .fold(f64::MIN, f64::max) as f32;
+        let v = c.viewport.get();
+        let margin = 24.;
+        let scale = ((v.width - 2. * margin) / (x1 - x0).max(1.))
+            .min((v.height - 2. * margin) / (y1 - y0).max(1.))
+            .clamp(MIN_ZOOM, 1.);
+        c.zoom.set(scale);
+        c.pan_x.set(v.width / 2. - scale * (x0 + x1) / 2.);
+        c.pan_y.set(v.height / 2. - scale * (y0 + y1) / 2.);
+        self.0.zoom.set(scale);
+        Ok(())
+    }
+    fn set_geometry(
+        &self,
+        id: EntityId,
+        f: impl FnOnce(&mut noton_format::Geometry, &common::entities::Block),
+    ) -> Result<()> {
+        let b = self.0.service.block(id)?;
+        let mut g = noton_format::Geometry {
+            x: b.x,
+            y: b.y,
+            width: b.width,
+            height: b.height,
+            z: b.z,
+        };
+        f(&mut g, &b);
+        g.width = g.width.max(80.);
+        g.height = g.height.max(40.);
+        self.0.service.geometry(id, g, self.page_stack()?)?;
+        self.changed();
+        self.sync_block(id)
+    }
+    /// Show a block's stored geometry on the canvas without rebuilding it.
+    fn sync_block(&self, id: EntityId) -> Result<()> {
+        let b = self.0.service.block(id)?;
+        if let Some(scene) = self.0.scene.borrow().as_ref() {
+            scene.sync(&b);
+        }
+        Ok(())
+    }
+    /// Move a block by `dx`, `dy` scene pixels.
+    pub fn nudge(&self, id: EntityId, dx: f64, dy: f64) -> Result<()> {
+        self.set_geometry(id, |g, _| {
+            g.x += dx;
+            g.y += dy;
+        })
+    }
+    /// Resize a block; images and sketches keep their aspect ratio when asked.
+    pub fn resize(&self, id: EntityId, dw: f64, dh: f64) -> Result<()> {
+        self.set_geometry(id, |g, b| {
+            g.width += dw;
+            if b.kind != BlockKind::RichText {
+                g.height += dh;
+            }
+        })
+    }
+    /// Apply the Position and size fields.
+    pub fn place(
+        &self,
+        id: EntityId,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: Option<f64>,
+    ) -> Result<()> {
+        self.set_geometry(id, |g, _| {
+            g.x = x;
+            g.y = y;
+            g.width = width;
+            if let Some(h) = height {
+                g.height = h;
+            }
+        })
+    }
+    pub fn arrange(&self, id: EntityId, front: bool) -> Result<()> {
+        self.0
+            .service
+            .arrange_block(id, front, self.page_stack()?)?;
+        self.changed();
+        self.sync_block(id)
+    }
+    pub fn duplicate(&self, id: EntityId) -> Result<()> {
+        self.flush()?;
+        let copy = self.0.service.duplicate_block(id, self.page_stack()?)?;
+        if let Ok(doc) = self.document(id) {
+            if self.0.service.block(copy)?.kind == BlockKind::RichText {
+                self.0.service.flush_text(copy, doc.to_djot()?)?;
+            }
+        }
+        self.0.selected.set(Some(copy));
+        self.changed();
+        self.refresh()?;
+        self.rebuild_page();
+        Ok(())
+    }
+    /// Move a block `offset` places in reading order.
+    pub fn reorder(&self, id: EntityId, offset: i32) -> Result<()> {
+        let note = self.0.note.get().context("Select a note")?;
+        let ids = self.0.service.note(note)?.blocks;
+        let index = ids.iter().position(|v| *v == id).unwrap_or(0);
+        let target = (index as i32 + offset).clamp(0, ids.len() as i32 - 1) as usize;
+        if target != index {
+            self.0
+                .service
+                .reorder_block(note, id, target, self.page_stack()?)?;
+            self.changed();
+            self.rebuild_page();
+        }
+        Ok(())
+    }
+    /// A block's place in reading order among the live blocks: (position, count), 1-based.
+    pub fn reading_position(&self, id: EntityId) -> Option<(usize, usize)> {
+        let note = self.0.note.get()?;
+        let blocks: Vec<_> = self
+            .0
+            .service
+            .blocks(note)
+            .ok()?
+            .into_iter()
+            .filter(|b| !b.trashed)
+            .collect();
+        let i = blocks.iter().position(|b| b.id == id)?;
+        Some((i + 1, blocks.len()))
+    }
+    pub fn trash_block(&self, id: EntityId) -> Result<()> {
+        let b = self.0.service.block(id)?;
+        let stack = self.page_stack()?;
+        self.0.service.trash_block(id, !b.trashed, stack)?;
+        if !b.trashed {
+            self.offer_undo(stack, tr!(block_trashed(name = b.label)).resolve_now());
+        }
+        if self.0.editing.get() == Some(id) {
+            self.0.editing.set(None);
+        }
+        if self.0.selected.get() == Some(id) {
+            self.0.selected.set(None);
+        }
+        self.changed();
+        self.refresh()?;
+        self.rebuild_page();
+        Ok(())
+    }
+    pub fn rename_block(&self, id: EntityId, label: String) -> Result<()> {
+        if self.0.service.block(id)?.label != label {
+            self.0.service.rename_block(id, label, self.page_stack()?)?;
+            self.changed();
+            self.rebuild_page();
+        }
+        Ok(())
+    }
+    pub fn describe(&self, id: EntityId, text: String) -> Result<()> {
+        let b = self.0.service.block(id)?;
+        let stack = self.page_stack()?;
+        match b.kind {
+            BlockKind::Drawing if b.description != text => {
+                self.0.service.describe_sketch(id, text, stack)?
+            }
+            BlockKind::Image if b.alt_text != text => {
+                self.0.service.set_alt_text(id, text, stack)?
+            }
+            _ => return Ok(()),
+        }
+        self.changed();
+        self.rebuild_page();
+        Ok(())
+    }
+    /// Show the snackbar that can take back the command just pushed on `stack`.
+    fn offer_undo(&self, stack: u64, message: String) {
+        if let Some(seq) = self.0.service.head(stack) {
+            self.0.undo_toast.set(Some((stack, seq, message)));
+        }
+    }
+    /// The snackbar's Undo: only if nothing was pushed since.
+    pub fn undo_toast(&self) -> Result<()> {
+        if let Some((stack, seq, _)) = self.0.undo_toast.get() {
+            self.0.undo_toast.set(None);
+            self.flush()?;
+            if self.0.service.undo_if_head(stack, seq)? {
+                self.changed();
+                self.refresh()?;
+                self.rebuild_page();
+            }
+        }
+        Ok(())
+    }
+    pub fn trash_note(&self, id: EntityId) -> Result<()> {
+        let n = self.0.service.note(id)?;
+        self.flush()?;
+        self.0
+            .service
+            .trash_note(id, !n.trashed, self.0.organization)?;
+        if !n.trashed {
+            self.offer_undo(
+                self.0.organization,
+                tr!(note_trashed(name = n.title)).resolve_now(),
+            );
+        }
+        self.changed();
+        self.refresh()
+    }
+    pub fn trash_folder(&self, id: EntityId) -> Result<()> {
+        let f = self.0.service.folder(id)?;
+        self.flush()?;
+        self.0
+            .service
+            .trash_folder(id, !f.trashed, self.0.organization)?;
+        if !f.trashed {
+            self.offer_undo(
+                self.0.organization,
+                tr!(folder_trashed(name = f.title)).resolve_now(),
+            );
+        }
+        self.changed();
+        self.refresh()
+    }
+    /// Start renaming a folder in place.
+    pub fn start_folder_rename(&self, id: EntityId) -> Result<()> {
+        self.commit_folder_rename()?;
+        let title = self.0.service.folder(id)?.title;
+        *self.0.folder_rename.borrow_mut() = Some((id, Signal::new(title)));
+        self.0.folder_rename_focused.set(false);
+        self.0.renaming_folder.set(Some(id));
+        self.refresh()
+    }
+    /// The inline rename's text for `id`, created on first use.
+    pub fn folder_rename_text(&self, id: EntityId, title: &str) -> Signal<String> {
+        let mut slot = self.0.folder_rename.borrow_mut();
+        match slot.as_ref() {
+            Some((current, text)) if *current == id => text.clone(),
+            _ => {
+                let text = Signal::new(title.to_owned());
+                *slot = Some((id, text.clone()));
+                text
+            }
+        }
+    }
+    /// Keep what was typed in an inline folder rename before doing something else.
+    pub fn commit_folder_rename(&self) -> Result<()> {
+        if let Some(id) = self.0.renaming_folder.get() {
+            let text = self
+                .0
+                .folder_rename
+                .borrow()
+                .as_ref()
+                .filter(|(current, _)| *current == id)
+                .map(|(_, t)| t.get());
+            match text {
+                Some(text) => self.rename_folder(id, text)?,
+                None => self.0.renaming_folder.set(None),
+            }
+        }
+        Ok(())
+    }
+    pub fn rename_folder(&self, id: EntityId, title: String) -> Result<()> {
+        self.0.renaming_folder.set(None);
+        *self.0.folder_rename.borrow_mut() = None;
+        let title = title.trim().to_owned();
+        if !title.is_empty() && self.0.service.folder(id)?.title != title {
+            self.0
+                .service
+                .rename_folder(id, title, self.0.organization)?;
+            self.changed();
+        }
+        self.refresh()
+    }
+    /// Drop the folder `key` before or after the folder `target`.
+    pub fn drop_folder(&self, key: EntityId, target: EntityId, after: bool) -> Result<bool> {
+        let mut ids: Vec<_> = self.0.service.folders()?.iter().map(|f| f.id).collect();
+        ids.retain(|id| *id != key);
+        let Some(at) = ids.iter().position(|id| *id == target) else {
+            return Ok(false);
+        };
+        self.0
+            .service
+            .reorder_folder(key, at + usize::from(after), self.0.organization)?;
+        self.changed();
+        self.refresh()?;
+        Ok(true)
+    }
+    /// Drop the note `key` before or after the note `target`, in the open folder.
+    pub fn drop_note(&self, key: EntityId, target: EntityId, after: bool) -> Result<bool> {
+        let Some(folder) = self.0.folder.get() else {
+            return Ok(false);
+        };
+        let mut ids = self.0.service.folder(folder)?.notes;
+        if !ids.contains(&key) || !self.0.query.get().trim().is_empty() {
+            return Ok(false);
+        }
+        ids.retain(|id| *id != key);
+        let Some(at) = ids.iter().position(|id| *id == target) else {
+            return Ok(false);
+        };
+        self.0
+            .service
+            .reorder_note(folder, key, at + usize::from(after), self.0.organization)?;
+        self.changed();
+        self.refresh()?;
+        Ok(true)
+    }
+    pub fn move_note_to(&self, note: EntityId, folder: EntityId) -> Result<()> {
+        self.flush()?;
+        self.0
+            .service
+            .move_note(note, folder, self.0.organization)?;
+        self.changed();
+        self.refresh()
+    }
+    /// Live folders other than the one holding `note`, for "Move to folder".
+    pub fn other_folders(&self, note: EntityId) -> Vec<(EntityId, String)> {
+        self.0
+            .service
+            .folders()
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|f| !f.trashed && !f.notes.contains(&note))
+            .map(|f| (f.id, f.title))
+            .collect()
+    }
+    /// Whether the library has nothing in its trash.
+    pub fn trash_count(&self) -> usize {
+        let Ok(folders) = self.0.service.folders() else {
+            return 0;
+        };
+        folders
+            .iter()
+            .map(|f| {
+                usize::from(f.trashed)
+                    + self
+                        .0
+                        .service
+                        .notes(f.id)
+                        .map(|ns| ns.iter().filter(|n| n.trashed).count())
+                        .unwrap_or(0)
+            })
+            .sum()
+    }
+    pub fn library_name(&self) -> String {
+        self.0
+            .path
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_else(|| tr!(untitled_library()).resolve_now())
+    }
+}

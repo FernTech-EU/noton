@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Noton · Narrow, note list</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0;background:#F3EFE7}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0}
+.ib{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;color:#3D3831;flex:none}
+.nrow{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:8px}
+</style>
+</helmet>
+<div style="width: 600px; height: 700px; overflow: hidden; background: #F8F5EF; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 13px; line-height: 18px; color: #211E1A; display: flex; flex-direction: column">
+<header style="height: 40px; flex: none; display: flex; align-items: center; gap: 8px; padding-left: 6px; background: #F3EFE7; border-bottom: 1px solid #E4DDD0">
+<button class="ib" aria-label="Menu"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+<svg viewBox="0 0 20 20" style="width: 18px; height: 18px; flex: none"><rect x="3" y="2" width="14" height="16" rx="3" fill="#B03D1A"></rect><path d="M7 6.5h6M7 10h6M7 13.5h3.5" stroke="#FFFEFB" stroke-width="1.6" stroke-linecap="round"></path></svg>
+<span style="font-weight: 600">Noton</span>
+<span style="flex-grow: 1"></span>
+<button class="ib" aria-label="Search library (Ctrl+Shift+F)"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></button>
+<div style="display: flex; height: 40px"><button aria-label="Minimize" style="width: 46px; display: flex; align-items: center; justify-content: center"><svg class="i" viewBox="0 0 24 24"><path d="M6 12h12"></path></svg></button><button aria-label="Maximize" style="width: 46px; display: flex; align-items: center; justify-content: center"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"></rect></svg></button><button aria-label="Close" style="width: 46px; display: flex; align-items: center; justify-content: center"><svg class="i" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"></path></svg></button></div>
+</header>
+
+<div style="height: 48px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 8px; border-bottom: 1px solid #E4DDD0">
+<button style="height: 30px; display: flex; align-items: center; gap: 4px; padding: 0 10px 0 4px; border-radius: 6px; color: #3D3831"><svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Folders</button>
+<nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 6px; color: #5F584E"><span>Carnets 2026</span><svg class="i" viewBox="0 0 24 24" style="width: 12px; height: 12px"><path d="m9 18 6-6-6-6"></path></svg><span aria-current="page" style="color: #211E1A; font-weight: 600">Travail</span></nav>
+<span style="flex-grow: 1"></span>
+<button style="height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 10px; border-radius: 6px; background: #B03D1A; color: #FFFFFF; font-weight: 600"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>New note</button>
+</div>
+
+<div style="padding: 8px 8px 0; display: flex; flex-direction: column; gap: 2px">
+<div style="padding: 4px 12px 8px; font-size: 12px; color: #5F584E">12 notes · newest first</div>
+<div class="nrow" style="background: #F7E4DA"><div style="display: flex; gap: 8px"><span style="font-weight: 600; flex-grow: 1">Réunion projet · 18 sept.</span><span style="font-size: 12px; color: #5F584E">14:32</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Ordre du jour, budget T4, décisions · 4 blocks</div></div>
+<div class="nrow" style="box-shadow: inset 0 0 0 2px #2456A6"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Planning T4</span><span style="font-size: 12px; color: #5F584E">Yesterday</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Jalons d'octobre à décembre · 6 blocks</div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Idées appli</span><span style="font-size: 12px; color: #5F584E">22 Sep</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Mode lecture, raccourcis clavier · 3 blocks</div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Lectures</span><span style="font-size: 12px; color: #5F584E">19 Sep</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Calm Technology, chapitre 3 · 2 blocks</div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Entretien Camille</span><span style="font-size: 12px; color: #5F584E">15 Sep</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Retours sur le prototype · 5 blocks</div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Point hebdo · 11 sept.</span><span style="font-size: 12px; color: #5F584E">11 Sep</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Recrutement, onboarding de Léa · 2 blocks</div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Rétro sprint 14</span><span style="font-size: 12px; color: #5F584E">8 Sep</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Ce qui a marché, ce qu'on change · 3 blocks</div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Fournisseurs</span><span style="font-size: 12px; color: #5F584E">2 Sep</span></div><div style="font-size: 12px; line-height: 16px; color: #5F584E">Devis impression, hébergement · 1 block</div></div>
+</div>
+<div style="flex-grow: 1"></div>
+<footer style="height: 28px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 12px; border-top: 1px solid #E4DDD0; background: #F3EFE7; font-size: 12px; color: #5F584E"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: #2F6B3A"><circle cx="12" cy="12" r="9"></circle><path d="m8.5 12 2.5 2.5 4.5-5"></path></svg>Saved · 14:32</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":600,"height":700}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

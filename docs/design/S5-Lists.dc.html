@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Noton · Folder and note lists</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0;background:#FBF9F4}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0}
+.row{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:6px}
+.nrow{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:8px}
+.lbl{font-size:11px;line-height:14px;font-weight:500;color:#5F584E;letter-spacing:.02em}
+.sub{font-size:12px;line-height:16px;color:#5F584E;display:flex;align-items:center;gap:6px}
+.sc{font-family:'JetBrains Mono',monospace;font-size:11px;color:#5F584E}
+.mi{height:30px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:6px;width:100%;box-sizing:border-box;text-align:left}
+.mi span:first-of-type{flex-grow:1}
+.pane{border:1px solid #E4DDD0;border-radius:10px;overflow:hidden;position:relative}
+.fold{width:16px;height:16px}
+</style>
+</helmet>
+<div style="width: 1280px; height: 760px; position: relative; overflow: hidden; background: #FBF9F4; font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 13px; line-height: 18px; color: #211E1A; display: flex; gap: 24px; padding: 24px 32px; box-sizing: border-box">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="lbl">A · FOLDERS PANE, FOCUSED, INLINE RENAME</span>
+<nav aria-label="Folders" class="pane" style="width: 230px; height: 680px; background: #F3EFE7; padding: 12px 8px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 2px 6px 8px; position: relative"><span style="font-weight: 600">Folders</span>
+<button aria-label="New folder" style="width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: #E9E3D7"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button>
+<span role="tooltip" style="position: absolute; right: -12px; top: 30px; z-index: 2; background: #2A2622; color: #F5F1EA; padding: 4px 6px 4px 8px; border-radius: 6px; font-size: 12px; line-height: 16px; display: flex; gap: 8px; align-items: center; white-space: nowrap">New folder<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 0 5px; border-radius: 4px; background: #45403A">Ctrl Shift N</span></span>
+</div>
+<div class="row" style="background: #F7E4DA; font-weight: 600"><svg class="i" viewBox="0 0 24 24" style="color: #B03D1A"><path d="M20 19a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"></path></svg><span style="flex-grow: 1">Travail</span><span style="font-size: 12px; color: #5F584E; font-weight: 400">12</span></div>
+<div class="row"><svg class="i" viewBox="0 0 24 24" style="color: #5F584E"><path d="M20 19a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"></path></svg><span style="flex-grow: 1">Perso</span><span style="font-size: 12px; color: #5F584E">5</span></div>
+<div class="row" style="padding: 0 4px 0 8px"><svg class="i" viewBox="0 0 24 24" style="color: #5F584E"><path d="M20 19a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"></path></svg>
+<label style="flex-grow: 1; height: 26px; display: flex; align-items: center; border: 1px solid #2456A6; box-shadow: 0 0 0 1px #2456A6; border-radius: 5px; background: #FFFEFB; padding: 0 6px"><input aria-label="Folder name" value="Recherche 2026" style="width: 100%; border: 0; background: transparent; font: inherit; color: #211E1A; outline: none; background-image: linear-gradient(#F5D0BF, #F5D0BF); background-size: 100px 18px; background-repeat: no-repeat; background-position: 0 center"></label></div>
+<div class="sub" style="padding: 2px 8px 6px 32px">Enter saves · Esc cancels</div>
+<div style="flex-grow: 1"></div>
+<div style="height: 1px; background: #E4DDD0; margin: 6px 4px"></div>
+<div class="row" style="color: #5F584E"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg><span style="flex-grow: 1">Trash</span><span style="font-size: 12px">3</span></div>
+</nav>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="lbl">B · NOTES PANE, FOCUSED, CONTEXT MENU</span>
+<section aria-label="Notes" class="pane" style="width: 330px; height: 680px; background: #F8F5EF; padding: 12px 8px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex; align-items: center; gap: 8px; padding: 0 2px 6px 10px"><span style="font-weight: 600">Travail</span><span style="font-size: 12px; color: #5F584E; flex-grow: 1">12 notes</span><button style="height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 6px; color: #963315; font-weight: 600"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>New note</button></div>
+<div class="nrow" style="background: #F7E4DA"><div style="display: flex; gap: 8px"><span style="font-weight: 600; flex-grow: 1">Réunion projet · 18 sept.</span><span style="font-size: 12px; color: #5F584E">14:32</span></div><div class="sub"><svg class="i" viewBox="0 0 24 24" style="width: 12px; height: 12px"><path d="M12 20h9M16.4 3.6a2.1 2.1 0 0 1 3 3L7.4 18.6 3 20l1.4-4.4Z"></path></svg><span style="flex-grow: 1">Ordre du jour, budget T4, décisions</span><span>4 blocks</span></div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Planning T4</span><span style="font-size: 12px; color: #5F584E">Yesterday</span></div><div class="sub"><span style="flex-grow: 1">Jalons d'octobre à décembre</span><span>6 blocks</span></div></div>
+<div class="nrow" style="box-shadow: inset 0 0 0 2px #2456A6"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Idées appli</span><span style="font-size: 12px; color: #5F584E">22 Sep</span></div><div class="sub"><span style="flex-grow: 1">Mode lecture, raccourcis clavier</span><span>3 blocks</span></div></div>
+<div class="nrow" style="background: #E9E3D7"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Lectures</span><span style="font-size: 12px; color: #5F584E">19 Sep</span></div><div class="sub"><span style="flex-grow: 1">Calm Technology, chapitre 3</span><span>2 blocks</span></div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Entretien Camille</span><span style="font-size: 12px; color: #5F584E">15 Sep</span></div><div class="sub"><span style="flex-grow: 1">Retours sur le prototype</span><span>5 blocks</span></div></div>
+<div class="nrow"><div style="display: flex; gap: 8px"><span style="flex-grow: 1">Point hebdo · 11 sept.</span><span style="font-size: 12px; color: #5F584E">11 Sep</span></div><div class="sub"><span style="flex-grow: 1">Recrutement, onboarding de Léa</span><span>2 blocks</span></div></div>
+
+<div role="menu" aria-label="Lectures" style="position: absolute; left: 150px; top: 262px; width: 250px; background: #FFFEFB; border: 1px solid #DAD3C6; border-radius: 10px; padding: 4px; box-shadow: 0 12px 32px -6px rgba(33,30,26,.22); z-index: 3">
+<button role="menuitem" class="mi" style="background: #E9E3D7"><svg class="i" viewBox="0 0 24 24"><path d="M17 22h-1a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4h1M7 22h1a4 4 0 0 0 4-4v-1M7 2h1a4 4 0 0 1 4 4v1"></path></svg><span>Rename</span><span class="sc">F2</span></button>
+<button role="menuitem" class="mi"><svg class="i" viewBox="0 0 24 24"><path d="M20 19a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"></path></svg><span>Move to folder…</span><span class="sc">Ctrl Shift M</span></button>
+<div style="height: 1px; background: #E4DDD0; margin: 4px 6px"></div>
+<button role="menuitem" class="mi" style="color: #B42318"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg><span>Move to trash</span><span class="sc" style="color: #B42318">Del</span></button>
+</div>
+</section>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<span class="lbl">C · DRAG REORDER (or Alt ↑ / Alt ↓ on the focused row)</span>
+<div class="pane" style="background: #F8F5EF; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; width: 330px; box-sizing: border-box">
+<div class="nrow"><div style="display: flex"><span style="flex-grow: 1">Planning T4</span><span style="font-size: 12px; color: #5F584E">Yesterday</span></div></div>
+<div style="position: relative; height: 0"><div style="position: absolute; left: 12px; right: 4px; top: -1px; height: 2px; background: #B03D1A"></div><div style="position: absolute; left: 4px; top: -5px; width: 10px; height: 10px; border: 2px solid #B03D1A; border-radius: 50%; background: #F8F5EF; box-sizing: border-box"></div></div>
+<div class="nrow"><div style="display: flex"><span style="flex-grow: 1">Idées appli</span><span style="font-size: 12px; color: #5F584E">22 Sep</span></div></div>
+<div class="nrow" style="opacity: .45; border: 1px dashed #8F877A"><div style="display: flex"><span style="flex-grow: 1">Lectures</span><span style="font-size: 12px; color: #5F584E">19 Sep</span></div></div>
+<div class="nrow" style="position: relative; left: 18px; top: -40px; margin-bottom: -40px; width: 290px; background: #FFFEFB; box-shadow: 0 4px 12px -2px rgba(33,30,26,.14); box-sizing: border-box"><div style="display: flex"><span style="flex-grow: 1">Lectures</span><span style="font-size: 12px; color: #5F584E">Drop to move above “Idées appli”</span></div></div>
+</div>
+
+<span class="lbl" style="margin-top: 16px">D · WHAT EACH STATE LOOKS LIKE</span>
+<div style="display: grid; grid-template-columns: 160px 1fr; gap: 8px 12px; font-size: 12px; line-height: 16px">
+<span style="font-weight: 600">Selected, pane focused</span><span>surface_selected fill + body_bold label (Travail, Réunion projet)</span>
+<span style="font-weight: 600">Selected, pane unfocused</span><span>surface_selected_inactive fill, label stays bold</span>
+<span style="font-weight: 600">Keyboard focus</span><span>2 px ink-blue ring inside the row (Idées appli); Ctrl ↑↓ moves focus without selecting</span>
+<span style="font-weight: 600">Hover / menu target</span><span>surface_hover fill (Lectures); menu also opens with Shift F10</span>
+<span style="font-weight: 600">Renaming</span><span>TextInput Outlined inside the row, text pre-selected</span>
+<span style="font-weight: 600">Drop indicator</span><span>2 px vermilion rule with a ring at its start, announced as “Move above Idées appli”</span>
+<span style="font-weight: 600">Counts</span><span>Trailing slot: notes per folder; blocks per note in the subtitle’s trailing slot</span>
+<span style="font-weight: 600">Sketch marker</span><span>pen-line icon in the subtitle’s leading slot</span>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":760}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

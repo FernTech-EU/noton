@@ -1,7 +1,7 @@
 # Noton validation and acceptance plan
 
-Planning artifact, not a report of tests already run. There is no Noton application to
-exercise yet. The core entity proposal has been checked with Qleany; no UI pass is claimed.
+Acceptance contract, not a blanket claim that these tests have passed.
+See [the user-story and visual audit](ui-audit.md) for current evidence and gaps.
 
 ## Harnesses
 
@@ -18,12 +18,12 @@ exercise yet. The core entity proposal has been checked with Qleany; no UI pass 
    `teksilo-automation-mcp --attach-pid <Noton PID>` to avoid selecting another app.
    Release packaging verifies that it exposes no automation bridge.
 5. Real assistive-technology sessions test Orca on Linux, NVDA on Windows and VoiceOver
-   on macOS for each platform actually selected. Internal MCP actions do not validate
+   on macOS. All three desktop platforms are selected. Internal MCP actions do not validate
    OS adapters, speech, native menu interaction or IME integration on their own.
 
-No compatible Teksilo automation MCP tool is connected in the current session. The
-planned integration must make this server available to the test runner; generic browser
-automation is not a substitute for the native Teksilo tree.
+The application-specific stdio host and the native `teksilo-automation-mcp` server
+are driven by the scripts under `tools/`. Generic browser automation is not a
+substitute for the native Teksilo tree.
 
 ## MCP protocol discipline
 
@@ -74,12 +74,32 @@ node bounds/pointer coordinates are logical. Record scale when comparing them.
 | A03 | Screen-reader reading/caret/selection at zoom and scale | Correct text/ranges/order, no skipped or duplicate blocks |
 | A04 | Light/dark/high contrast, 200% text, reduced motion, narrow window | Readable controls, reflow, visible focus and usable navigation |
 | L01 | Switch EN ↔ FR with focus, menu and error visible | All chrome/AT translations update; user content and focus preserved |
-| Q01 | Search accents, emoji, tables if selected, trash, stale results | Correct scope and range; result opens exact note/block |
+| Q01 | Search accents, emoji, tables, trash, stale results | Correct scope and range; result opens exact note/block |
 | X01 | Native export/import and HTML/text export | Native semantic identity preserved; linear exports use explicit reading order |
 
-Optional features selected by the owner add equally concrete scenarios before development:
-for example a table requires insert/delete rows, keyboard cell traversal, AT reading order,
-undo, search offsets, paste and save/export round-trip—not just a working Insert button.
+Tables and ink are now selected, with these additional required scenarios:
+
+| ID | Scenario | Pass criterion |
+|---|---|---|
+| T01 | Insert/edit table; insert/remove rows and columns; undo/redo | Correct cells/text/order and one appropriate history step |
+| T02 | Navigate table by keyboard and AT, at 200% scale | Named row/column/cell semantics, visible caret, usable wide-table scrolling |
+| T03 | Paste table, search after table, export and save/reopen | Semantic fidelity; correct character positions after table anchors |
+| I01 | Mouse stroke and synthetic pressure/no-pressure traces | Correct zoom-independent geometry; deterministic width fallback |
+| I02 | Draw/Select/Pan mode switching, Escape and lost capture | No unintended text selection/drag or persisted provisional stroke |
+| I03 | Add stroke, erase gesture, undo/redo, save/reopen | Vector data/order preserved; one command per gesture; no redraw-only fake persistence |
+| I04 | Select/name/describe/move/resize/delete drawing through keyboard/AT | Accessible controls and textual equivalent; history/persistence correct |
+| I05 | Draw in a transformed viewport; view switch with drawing selected | Stable drawing-local coordinates and reading order; no cumulative transform drift |
+| I06 | Unsupported pen capabilities and unavailable hardware | Mouse fallback works; no fabricated pressure/hardware pass |
+| I07 | Stroke crosses sketch boundary; move/resize sketch; switch to linear view | Ink remains clipped to its sketch; source samples unchanged; aspect ratio/description preserved |
+| I08 | Reflow surrounding text and reorder blocks in linear view | Sketch geometry unchanged; explicit reading order updates independently of canvas position |
+
+Ink sample decoder tests cover empty and excessive traces, duplicate/tied timestamps,
+non-finite coordinates, cancelled input, pressure clamping, missing axes and corrupt payloads.
+Variable-width outline generation is deterministic and bounded. Stroke erasure and restore
+preserve identity and reading/paint order. Physical tablet testing is explicitly best-effort
+by owner decision and is reported as unverified when hardware is unavailable.
+
+See [CI adaptation](ci-plan.md) for the all-platform gate and source workflow mapping.
 
 ## Lower-level properties and failure injection
 

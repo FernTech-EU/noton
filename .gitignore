@@ -1,0 +1,8 @@
+/target/
+/temp/
+/.cargo/config.toml
+*.noton
+*.noton-journal
+/.dependencies/
+*.noton.lock
+__pycache__/

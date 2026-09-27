@@ -1,0 +1,66 @@
+[
+  {
+    "scenario": "N01-N02-navigation-move-undo",
+    "status": "passed"
+  },
+  {
+    "scenario": "E01-S04-multiline-projections",
+    "status": "passed"
+  },
+  {
+    "scenario": "E03-U01-formatting-history",
+    "status": "passed"
+  },
+  {
+    "scenario": "S01-U01-move-resize-history",
+    "status": "passed"
+  },
+  {
+    "scenario": "U05-trash-restore",
+    "status": "passed"
+  },
+  {
+    "scenario": "Q01-accent-search",
+    "status": "passed"
+  },
+  {
+    "scenario": "U03-empty-text-history",
+    "status": "passed"
+  },
+  {
+    "scenario": "I01-I02-I03-pen-cancel-history",
+    "status": "passed"
+  },
+  {
+    "scenario": "P04-X01-native-backup",
+    "status": "passed"
+  },
+  {
+    "scenario": "T01-table-operations",
+    "status": "passed"
+  },
+  {
+    "scenario": "A04-narrow-navigation",
+    "status": "passed"
+  },
+  {
+    "scenario": "L01-french-startup",
+    "status": "passed"
+  },
+  {
+    "scenario": "E02-IME-commit",
+    "status": "passed"
+  },
+  {
+    "scenario": "P02-idle-autosave",
+    "status": "passed"
+  },
+  {
+    "scenario": "P06-writer-lock",
+    "status": "passed"
+  },
+  {
+    "scenario": "A04-card-containment",
+    "status": "passed"
+  }
+]
