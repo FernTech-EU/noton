@@ -13,6 +13,7 @@ pub fn build(
     size: (u32, u32),
 ) -> anyhow::Result<teksilo::app::HeadlessApp> {
     let client = frontend::EventHubClient::new(&vm.0.service.context.event_hub);
+    vm.watch_history(&client);
     client.start(vm.0.service.context.shutdown_rx.clone());
     let i18n = teksilo::i18n::I18nConfig::new()
         .framework_locales(teksilo::widgets::framework_locales())
@@ -90,9 +91,8 @@ pub fn serve(vm: SessionVm, locale: &str, size: (u32, u32)) -> anyhow::Result<()
             "ping" => Ok(json!({})),
             "tools/list" => Ok(json!({"tools":tools()})),
             "tools/call" => {
-                // A stdio host has no desktop event loop. Poll the same save
-                // coordinator as the frame callback before each observation.
-                vm.report(vm.tick());
+                // Deliver queued notifications/deadlines without inventing a periodic tick.
+                vm.report(vm.run_scheduled());
                 let _ = automation::execute(
                     &mut app.tree,
                     &mut ops,

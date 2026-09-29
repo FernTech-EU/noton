@@ -98,6 +98,7 @@ fn text_editor(
         .on_change(move || {
             if let Some(v) = pending.upgrade() {
                 v.pending.borrow_mut().insert(id);
+                v.wake.notify();
             }
         });
     let handle = editor.handle();
@@ -117,6 +118,7 @@ fn text_editor(
                     inner.editing.set_if_changed(Some(id));
                 }
                 inner.format_dirty.set(true);
+                inner.wake.notify();
             }
         }
     });
@@ -128,6 +130,7 @@ fn text_editor(
             if let Some(inner) = weak.upgrade() {
                 if inner.editing.get() == Some(id) {
                     inner.format_dirty.set(true);
+                    inner.wake.notify();
                 }
             }
         })
@@ -137,6 +140,7 @@ fn text_editor(
         if let Some(inner) = weak.upgrade() {
             if inner.editing.get() == Some(id) {
                 inner.format_dirty.set(true);
+                inner.wake.notify();
             }
         }
     });

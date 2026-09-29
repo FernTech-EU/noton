@@ -219,7 +219,6 @@ pub struct AppRoot {
     vm: SessionVm,
     menu: MenuModel,
     root: Option<WidgetId>,
-    tick: Option<teksilo::core::frame_tick_scheduler::FrameTickSubscription>,
     folder_selection: teksilo::data::KeyedSelectionModel<u64>,
     note_selection: teksilo::data::KeyedSelectionModel<u64>,
     split: SplitterModel,
@@ -235,7 +234,6 @@ impl AppRoot {
             vm,
             menu,
             root: None,
-            tick: None,
             folder_selection: teksilo::data::KeyedSelectionModel::new(
                 teksilo::data::SelectionMode::Single,
             ),
@@ -542,9 +540,7 @@ impl Widget for AppRoot {
         if (scale - 1.).abs() > 0.001 {
             ctx.run_after_mount(move |ec| ec.set_text_scale(scale));
         }
-        self.tick = Some(ctx.subscribe_frame_tick_throttled(std::time::Duration::from_millis(100)));
-        let v = vm.clone();
-        ctx.effect(&ctx.frame_tick(), move |_| v.report(v.tick()));
+        vm.wire_coordinator(ctx);
         let v = vm.clone();
         ctx.effect(&vm.0.query, move |_| v.report(v.refresh()));
         // Named undo: rebuild the Edit menu when what it would undo changes.

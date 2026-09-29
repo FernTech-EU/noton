@@ -14,6 +14,7 @@ pub struct EditVm {
     registry: Rc<RefCell<Option<TextSurfaces>>>,
     organization: Rc<Cell<bool>>,
     suspended: Rc<Cell<usize>>,
+    wake: Rc<RefCell<Option<crate::coordinator::CoordinatorWake>>>,
 }
 impl std::fmt::Debug for EditVm {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -28,6 +29,14 @@ impl Drop for UndoSuspend {
     }
 }
 impl EditVm {
+    pub(crate) fn set_wake(&self, wake: crate::coordinator::CoordinatorWake) {
+        *self.wake.borrow_mut() = Some(wake);
+    }
+    fn changed(&self) {
+        if let Some(wake) = self.wake.borrow().as_ref() {
+            wake.notify();
+        }
+    }
     pub fn suspend(&self) -> UndoSuspend {
         self.suspended.set(self.suspended.get() + 1);
         UndoSuspend(self.suspended.clone())
@@ -36,14 +45,17 @@ impl EditVm {
         let registry = ctx.text_surfaces();
         *self.registry.borrow_mut() = Some(registry.clone());
         let target = self.surface.clone();
+        let edit = self.clone();
         ctx.effect(&registry.focus_signal(), move |_| {
             if let Some(surface) = registry.focused() {
                 *target.borrow_mut() = Some(surface);
             }
+            edit.changed();
         });
     }
     pub fn claim_text(&self, surface: Rc<dyn TextSurface>) {
         *self.surface.borrow_mut() = Some(surface);
+        self.changed();
     }
     /// Whether a text surface has keyboard focus right now.
     pub fn text_focused(&self) -> bool {
@@ -62,6 +74,7 @@ impl EditVm {
     pub fn claim_structure(&self, organization: bool) {
         self.surface.borrow_mut().take();
         self.organization.set(organization);
+        self.changed();
     }
     pub fn invoke(&self, vm: &crate::session_vm::SessionVm, redo: bool) -> anyhow::Result<()> {
         if self.suspended.get() != 0 {

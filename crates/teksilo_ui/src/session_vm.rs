@@ -153,6 +153,12 @@ pub const MAX_ZOOM: f32 = 4.;
 #[derive(Clone)]
 pub struct SessionVm(pub Rc<Inner>);
 pub struct Inner {
+    pub(crate) wake: crate::coordinator::CoordinatorWake,
+    deadline: Cell<Option<Instant>>,
+    tree_wake: RefCell<Option<Rc<Cell<Option<Instant>>>>>,
+    fit_at: Cell<Option<Instant>>,
+    camera_observer: RefCell<Option<teksilo::core::signal::ObserverHandle>>,
+    history_observers: RefCell<Vec<frontend::event_hub_client::SubscriptionToken>>,
     pub service: LibraryService,
     pub edit: crate::edit_vm::EditVm,
     pub folder: Signal<Option<EntityId>>,
@@ -222,15 +228,14 @@ pub struct Inner {
     pub dialog_block: Cell<Option<EntityId>>,
     pub format: FormatState,
     pub ink: crate::page::ink::InkTools,
-    /// The caret moved or the format changed; the toolbar syncs on the next tick.
+    /// The caret moved or the format changed; the coordinator syncs after the mutation.
     pub format_dirty: Cell<bool>,
     /// The canvas on screen, when the note is shown as a canvas.
     pub scene: RefCell<Option<crate::page::LiveScene>>,
     /// Zoom this note's canvas to fit once it is on screen (narrow windows).
     pub fit_pending: Cell<Option<EntityId>>,
-    /// The canvas on screen is waiting for its first fit, with the viewport
-    /// width seen at the last tick: fit once the panes stop moving.
-    fit_armed: Cell<Option<f32>>,
+    /// Wait for a usable viewport, then fit after its layout changes settle.
+    fit_waiting: Cell<bool>,
     /// Caret observers of each live editor, replaced when it is rebuilt.
     pub format_observers: RefCell<HashMap<EntityId, Vec<teksilo::core::signal::ObserverHandle>>>,
     /// Observers that live as long as the window: dropping one unsubscribes it.
@@ -279,7 +284,18 @@ impl SessionVm {
         let organization = service.new_stack();
         let prefs = crate::settings::load_or_default();
         let now = Instant::now();
+        let wake = crate::coordinator::CoordinatorWake::default();
+        if let Some(worker) = &worker {
+            let notify = wake.clone();
+            worker.set_completion_wake(Arc::new(move || notify.notify()));
+        }
         let vm = Self(Rc::new(Inner {
+            wake,
+            deadline: Cell::new(None),
+            tree_wake: RefCell::new(None),
+            fit_at: Cell::new(None),
+            camera_observer: RefCell::new(None),
+            history_observers: RefCell::new(Vec::new()),
             service,
             edit: crate::edit_vm::EditVm::default(),
             folder: Signal::new(None),
@@ -338,7 +354,7 @@ impl SessionVm {
             format_dirty: Cell::new(false),
             scene: RefCell::new(None),
             fit_pending: Cell::new(None),
-            fit_armed: Cell::new(None),
+            fit_waiting: Cell::new(false),
             format_observers: RefCell::new(HashMap::new()),
             save_failed: Cell::new(false),
             seq: Cell::new(0),
@@ -358,6 +374,7 @@ impl SessionVm {
         }
     }
     pub fn changed(&self) {
+        self.0.wake.notify();
         self.0.seq.set(self.0.seq.get() + 1);
         self.0.last_edit.set(Instant::now());
         if self.0.first_edit.get().is_none() {
@@ -675,6 +692,7 @@ impl SessionVm {
         doc.set_djot_sync(&block.content_djot)?;
         let revision = Arc::new(AtomicU64::new(0));
         let counter = revision.clone();
+        let wake = self.0.wake.clone();
         let subscription = doc.on_change(move |event| {
             use text_document::DocumentEvent::*;
             if matches!(
@@ -687,6 +705,7 @@ impl SessionVm {
                     | FlowElementsRemoved { .. }
             ) {
                 counter.fetch_add(1, Ordering::Relaxed);
+                wake.notify();
             }
         });
         self.0.document_changes.borrow_mut().insert(
@@ -709,6 +728,9 @@ impl SessionVm {
                 != Some(changes.revision.load(Ordering::Relaxed))
             {
                 self.0.pending.borrow_mut().insert(*id);
+                if self.0.editing.get() == Some(*id) {
+                    self.0.format_dirty.set(true);
+                }
             }
         }
         let pending: Vec<_> = self.0.pending.borrow().iter().copied().collect();
@@ -745,7 +767,7 @@ impl SessionVm {
         }
         Ok(())
     }
-    pub fn tick(&self) -> Result<()> {
+    fn coordinate(&self, now: Instant) -> Result<()> {
         self.flush()?;
         if let Some(worker) = &self.0.worker {
             while let Some(reply) = worker.poll() {
@@ -770,7 +792,8 @@ impl SessionVm {
             self.sync_format();
         }
         // Fit a narrow window's canvas once it has been laid out, outside layout.
-        if let Some(last) = self.0.fit_armed.get() {
+        if self.0.fit_at.get().is_some_and(|at| at <= now) {
+            self.0.fit_at.set(None);
             let width = self
                 .0
                 .camera
@@ -778,11 +801,9 @@ impl SessionVm {
                 .as_ref()
                 .map(|c| c.viewport.get().width)
                 .unwrap_or(0.);
-            if width > 0. && (width - last).abs() < 0.5 {
-                self.0.fit_armed.set(None);
+            if width > 0. {
+                self.0.fit_waiting.set(false);
                 self.zoom_to_fit()?;
-            } else {
-                self.0.fit_armed.set(Some(width));
             }
         }
         if self.0.saved.get() == self.0.seq.get() {
@@ -796,12 +817,12 @@ impl SessionVm {
             self.0.status.set_if_changed(tr!(saved()).resolve_now());
         } else if !self.0.save_failed.get()
             && self.0.inflight.get().is_none()
-            && (self.0.last_edit.get().elapsed() >= Duration::from_millis(750)
+            && (now.saturating_duration_since(self.0.last_edit.get()) >= Duration::from_millis(750)
                 || self
                     .0
                     .first_edit
                     .get()
-                    .is_some_and(|t| t.elapsed() >= Duration::from_secs(5)))
+                    .is_some_and(|t| now.saturating_duration_since(t) >= Duration::from_secs(5)))
         {
             self.save()?;
         }
@@ -1285,10 +1306,25 @@ impl SessionVm {
             }
         }
         self.0.zoom.set(camera.zoom.get());
+        let weak = Rc::downgrade(&self.0);
+        *self.0.camera_observer.borrow_mut() = Some(camera.viewport.observe(move |_| {
+            if let Some(inner) = weak.upgrade() {
+                if inner.fit_waiting.get() {
+                    inner
+                        .fit_at
+                        .set(Some(Instant::now() + Duration::from_millis(16)));
+                    inner.wake.notify();
+                }
+            }
+        }));
         *self.0.camera.borrow_mut() = Some(camera);
         if note.is_some() && self.0.fit_pending.get() == note {
             self.0.fit_pending.set(None);
-            self.0.fit_armed.set(Some(-1.));
+            self.0.fit_waiting.set(true);
+            self.0
+                .fit_at
+                .set(Some(Instant::now() + Duration::from_millis(16)));
+            self.0.wake.notify();
         }
     }
     /// Remember the camera before the canvas is rebuilt.
@@ -1772,3 +1808,96 @@ mod tests {
         assert!(is_backup_of("Notes.2.20260927T231245.123.noton", "Notes.2"));
     }
 }
+
+impl SessionVm {
+    pub(crate) fn wire_coordinator(&self, ctx: &mut BuildContext) {
+        self.0.wake.attach(ctx.poster().cloned());
+        self.0.edit.set_wake(self.0.wake.clone());
+        *self.0.tree_wake.borrow_mut() = Some(ctx.wake_at_handle());
+        let vm = self.clone();
+        ctx.effect(&ctx.frame_tick(), move |_| vm.report(vm.run_scheduled()));
+        self.0.wake.notify();
+        ctx.request_frame(); // One bootstrap pass; no re-arming subscription.
+    }
+
+    pub(crate) fn watch_history(&self, client: &frontend::EventHubClient) {
+        let mut subscriptions = self.0.history_observers.borrow_mut();
+        subscriptions.clear();
+        for event in [
+            common::event::UndoRedoEvent::StackChanged,
+            common::event::UndoRedoEvent::Undone,
+            common::event::UndoRedoEvent::Redone,
+        ] {
+            let wake = self.0.wake.clone();
+            subscriptions.push(
+                client.subscribe(common::event::Origin::UndoRedo(event), move |_| {
+                    wake.notify()
+                }),
+            );
+        }
+    }
+
+    pub fn handle_coordinator_event(&self, payload: &(dyn std::any::Any + Send)) -> bool {
+        let Some(event) = payload.downcast_ref::<crate::coordinator::CoordinatorEvent>() else {
+            return false;
+        };
+        if !self.0.wake.owns(event) {
+            return false;
+        }
+        self.report(self.run_scheduled());
+        true
+    }
+
+    /// Shared by native event delivery and the headless host. An observation
+    /// does not flush documents or poll saves unless work was actually requested.
+    pub fn run_scheduled(&self) -> Result<()> {
+        self.run_scheduled_at(Instant::now())
+    }
+    fn run_scheduled_at(&self, now: Instant) -> Result<()> {
+        let notified = self.0.wake.take();
+        if notified || self.0.deadline.get().is_some_and(|at| at <= now) {
+            self.0.deadline.set(None);
+            let result = self.coordinate(now);
+            if result.is_err() {
+                self.mark_save_failed();
+            }
+            self.update_deadline();
+            result?;
+        }
+        self.arm_deadline();
+        Ok(())
+    }
+    fn update_deadline(&self) {
+        let autosave = if self.0.worker.is_some()
+            && self.0.saved.get() < self.0.seq.get()
+            && !self.0.save_failed.get()
+            && self.0.inflight.get().is_none()
+        {
+            let quiet = self.0.last_edit.get() + Duration::from_millis(750);
+            Some(
+                self.0
+                    .first_edit
+                    .get()
+                    .map_or(quiet, |first| quiet.min(first + Duration::from_secs(5))),
+            )
+        } else {
+            None
+        };
+        self.0
+            .deadline
+            .set(autosave.into_iter().chain(self.0.fit_at.get()).min());
+    }
+    fn arm_deadline(&self) {
+        if let (Some(at), Some(wake)) = (self.0.deadline.get(), self.0.tree_wake.borrow().as_ref())
+        {
+            // The cell belongs to the whole tree. Never replace an earlier
+            // deadline (caret, tooltip, another widget), or clear its work.
+            if wake.get().is_none_or(|existing| at < existing) {
+                wake.set(Some(at));
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod scheduling_tests;

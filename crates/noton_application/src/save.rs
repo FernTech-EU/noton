@@ -3,7 +3,10 @@ use anyhow::{Context, Result};
 use noton_format::{Library, LibraryFile};
 use std::{
     path::PathBuf,
-    sync::mpsc::{self, Receiver, Sender},
+    sync::{
+        Arc, Mutex,
+        mpsc::{self, Receiver, Sender},
+    },
     thread::{self, JoinHandle},
 };
 pub struct SaveReply {
@@ -15,7 +18,9 @@ enum Request {
     Backup(PathBuf),
     Stop,
 }
+type CompletionWake = Arc<Mutex<Option<Arc<dyn Fn() + Send + Sync>>>>;
 pub struct SaveWorker {
+    wake: CompletionWake,
     sender: Sender<Request>,
     receiver: Receiver<SaveReply>,
     thread: Option<JoinHandle<()>>,
@@ -24,6 +29,8 @@ impl SaveWorker {
     pub fn start(mut file: LibraryFile) -> Self {
         let (tx, rx) = mpsc::channel();
         let (done, out) = mpsc::channel();
+        let wake: CompletionWake = Arc::default();
+        let completion = wake.clone();
         let thread = thread::spawn(move || {
             while let Ok(request) = rx.recv() {
                 match request {
@@ -53,13 +60,21 @@ impl SaveWorker {
                     }
                     Request::Stop => break,
                 }
+                let notify = completion.lock().unwrap().clone();
+                if let Some(notify) = notify {
+                    notify();
+                }
             }
         });
         Self {
+            wake,
             sender: tx,
             receiver: out,
             thread: Some(thread),
         }
+    }
+    pub fn set_completion_wake(&self, wake: Arc<dyn Fn() + Send + Sync>) {
+        *self.wake.lock().unwrap() = Some(wake);
     }
     pub fn save(&self, sequence: u64, snapshot: Library) -> Result<()> {
         self.sender

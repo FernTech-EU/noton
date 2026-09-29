@@ -1,6 +1,7 @@
 //! Noton desktop application.
 pub mod app;
 pub mod automation;
+mod coordinator;
 pub mod dialogs;
 pub mod edit_vm;
 pub mod event_source;
@@ -91,6 +92,7 @@ fn run_app() -> anyhow::Result<()> {
         return automation::serve(vm, locale.as_deref().unwrap_or("en-US"), size);
     }
     let client = frontend::EventHubClient::new(&vm.0.service.context.event_hub);
+    vm.watch_history(&client);
     client.start(vm.0.service.context.shutdown_rx.clone());
     let prefs = settings::load_or_default();
     let locale = locale.or(prefs.locale.clone());
@@ -103,6 +105,7 @@ fn run_app() -> anyhow::Result<()> {
             ("fr-FR", &[include_str!("../locales/fr-FR.ftl")]),
         ])
         .user_locale(locale.map(|s| s.parse()).transpose()?);
+    let coordinator = vm.clone();
     let close = vm.clone();
     let shutdown = vm.0.service.context.clone();
     TeksiloAppBuilder::new()
@@ -118,6 +121,7 @@ fn run_app() -> anyhow::Result<()> {
         })
         .install_automation_bridge_in_debug()
         .event_source(event_source::QleanyEventSource::new(client))
+        .on_external_with_ctx(move |payload, _| coordinator.handle_coordinator_event(payload))
         .initial_window(
             WindowConfig::new()
                 .title("Noton")
