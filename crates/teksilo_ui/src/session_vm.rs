@@ -1,6 +1,9 @@
 use anyhow::{Context, Result};
-use common::{entities::BlockKind, types::EntityId};
-use noton_application::{LibraryService, save::SaveWorker};
+use common::{
+    entities::{Block, BlockKind},
+    types::EntityId,
+};
+use noton_application::{Kind, LibraryService, save::SaveWorker};
 use noton_format::{Asset, LibraryFile};
 use std::sync::{
     Arc,
@@ -9,12 +12,13 @@ use std::sync::{
 use std::{
     cell::{Cell, RefCell},
     collections::{HashMap, HashSet},
-    path::PathBuf,
+    path::{Path, PathBuf},
     rc::Rc,
     time::{Duration, Instant},
 };
-use teksilo::{data::ListModel, prelude::*, widgets::rich_text::EditorHandle};
+use teksilo::{canvas::RasterIcon, data::ListModel, prelude::*, widgets::rich_text::EditorHandle};
 use text_document::TextDocument;
+use uuid::Uuid;
 struct DocumentChanges {
     revision: Arc<AtomicU64>,
     _subscription: text_document::Subscription,
@@ -43,6 +47,34 @@ fn search_key(text: &str) -> String {
         .filter(|c| !is_combining_mark(*c))
         .flat_map(char::to_lowercase)
         .collect()
+}
+/// A block's searchable text, normalized once per version of the block.
+struct SearchEntry {
+    /// The stored block's `updated_at`, and the live document's revision.
+    stamp: (chrono::DateTime<chrono::Utc>, Option<u64>),
+    text: String,
+}
+/// Whether `name` is a backup of the library `stem` as [`SessionVm::backup`]
+/// names them: `{stem}.{YYYYMMDD}T{HHMMSS}.{mmm}.noton`, and nothing else.
+fn is_backup_of(name: &str, stem: &str) -> bool {
+    let Some(stamp) = name
+        .strip_prefix(stem)
+        .and_then(|rest| rest.strip_prefix('.'))
+        .and_then(|rest| rest.strip_suffix(".noton"))
+    else {
+        return false;
+    };
+    stamp.len() == 19
+        && stamp.bytes().enumerate().all(|(i, c)| match i {
+            8 => c == b'T',
+            15 => c == b'.',
+            _ => c.is_ascii_digit(),
+        })
+}
+/// Decoded images are kept at most this many pixels on a side.
+const MAX_IMAGE_EDGE: u32 = 2048;
+fn display_image(image: RasterIcon) -> RasterIcon {
+    image.downsample_to_max(MAX_IMAGE_EDGE).unwrap_or(image)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -150,6 +182,11 @@ pub struct Inner {
     pub organization: u64,
     pub page_stacks: RefCell<HashMap<EntityId, u64>>,
     pub assets: RefCell<Vec<Asset>>,
+    /// Decoded images of the page on screen, by asset.
+    images: RefCell<HashMap<Uuid, Rc<RasterIcon>>>,
+    search_index: RefCell<HashMap<EntityId, SearchEntry>>,
+    /// The user chose to close the window without saving.
+    close_anyway: Cell<bool>,
     pub worker: Option<SaveWorker>,
     pub path: PathBuf,
     pub prefs: RefCell<crate::settings::Preferences>,
@@ -240,7 +277,7 @@ impl SessionVm {
         path: PathBuf,
     ) -> Result<Self> {
         let organization = service.new_stack();
-        let prefs = crate::settings::load().unwrap_or_default();
+        let prefs = crate::settings::load_or_default();
         let now = Instant::now();
         let vm = Self(Rc::new(Inner {
             service,
@@ -271,6 +308,9 @@ impl SessionVm {
             organization,
             page_stacks: RefCell::new(HashMap::new()),
             assets: RefCell::new(assets),
+            images: RefCell::new(HashMap::new()),
+            search_index: RefCell::new(HashMap::new()),
+            close_anyway: Cell::new(false),
             worker,
             path,
             narrow_hint: Signal::new(!prefs.narrow_hint_dismissed),
@@ -323,10 +363,23 @@ impl SessionVm {
         if self.0.first_edit.get().is_none() {
             self.0.first_edit.set(Some(Instant::now()));
         }
-        self.0.status.set(tr!(unsaved()).resolve_now());
+        self.0.status.set_if_changed(tr!(unsaved()).resolve_now());
         if !self.0.save_failed.get() {
-            self.0.save_state.set(SaveState::Unsaved);
+            self.0.save_state.set_if_changed(SaveState::Unsaved);
         }
+    }
+    /// Show that the library could not be saved; autosave waits for a retry.
+    fn mark_save_failed(&self) {
+        self.0.save_failed.set(true);
+        self.0.save_state.set_if_changed(SaveState::Failed);
+        self.0
+            .status
+            .set_if_changed(tr!(save_failed()).resolve_now());
+    }
+    /// Make the page's structure (not a text block) what Ctrl+Z undoes: the
+    /// user has just acted on blocks.
+    pub fn claim_page(&self) {
+        self.0.edit.claim_structure(false);
     }
     pub fn rebuild_page(&self) {
         self.keep_camera();
@@ -387,22 +440,9 @@ impl SessionVm {
                     .into_iter()
                     .filter(|b| show_trash || !b.trashed)
                     .collect();
-                let text = |b: &common::entities::Block| {
-                    self.0
-                        .documents
-                        .borrow()
-                        .get(&b.id)
-                        .and_then(|d| d.to_plain_text().ok())
-                        .unwrap_or_else(|| b.content_djot.clone())
-                };
                 let matched = query.is_empty()
                     || search_key(&n.title).contains(&query)
-                    || blocks.iter().any(|b| {
-                        search_key(&b.label).contains(&query)
-                            || search_key(&b.description).contains(&query)
-                            || search_key(&b.alt_text).contains(&query)
-                            || search_key(&text(b)).contains(&query)
-                    });
+                    || blocks.iter().any(|b| self.block_matches(b, &query));
                 if !matched {
                     continue;
                 }
@@ -415,7 +455,7 @@ impl SessionVm {
                     blocks
                         .iter()
                         .find_map(|b| match b.kind {
-                            BlockKind::RichText => snippet(&text(b)),
+                            BlockKind::RichText => snippet(&self.block_text(b)),
                             BlockKind::Drawing if !b.description.is_empty() => {
                                 snippet(&b.description)
                             }
@@ -453,6 +493,42 @@ impl SessionVm {
         );
         self.0.folders_version.set(self.0.folders_version.get() + 1);
         Ok(())
+    }
+    /// The text of a block as a reader sees it: its live document when one
+    /// is open, else what is stored.
+    fn block_text(&self, b: &Block) -> String {
+        self.0
+            .documents
+            .borrow()
+            .get(&b.id)
+            .and_then(|d| d.to_plain_text().ok())
+            .unwrap_or_else(|| b.content_djot.clone())
+    }
+    /// Whether `query` (already a [`search_key`]) occurs in the block's label,
+    /// description, alt text or text. The normalized text is cached until the
+    /// block or its live document changes, so a keystroke in the search field
+    /// does not normalize the whole library again.
+    fn block_matches(&self, b: &Block, query: &str) -> bool {
+        let live = self
+            .0
+            .document_changes
+            .borrow()
+            .get(&b.id)
+            .map(|c| c.revision.load(Ordering::Relaxed));
+        let stamp = (b.updated_at, live);
+        let mut index = self.0.search_index.borrow_mut();
+        if index.get(&b.id).is_none_or(|e| e.stamp != stamp) {
+            let text = [
+                b.label.as_str(),
+                &b.description,
+                &b.alt_text,
+                &self.block_text(b),
+            ]
+            .map(search_key)
+            .join("\n");
+            index.insert(b.id, SearchEntry { stamp, text });
+        }
+        index.get(&b.id).is_some_and(|e| e.text.contains(query))
     }
     pub fn select_folder(&self, id: EntityId) -> Result<()> {
         if self.0.renaming_folder.get().is_some_and(|r| r != id) {
@@ -568,12 +644,22 @@ impl SessionVm {
             })
             .collect())
     }
+    /// Keep the title typed in the note header. Surrounding spaces are not
+    /// kept, and an empty title is not a rename: once editing ends, the field
+    /// shows the stored title again.
     pub fn rename_note(&self) -> Result<()> {
         if let Some(id) = self.0.note.get() {
-            if self.0.service.note(id)?.title != self.0.title.get() {
+            let stored = self.0.service.note(id)?.title;
+            let typed = self.0.title.get();
+            let title = typed.trim();
+            if title.is_empty() {
+                if !self.0.renaming_note.get() {
+                    self.0.title.set_if_changed(stored);
+                }
+            } else if title != stored {
                 self.0
                     .service
-                    .rename_note(id, self.0.title.get(), self.0.organization)?;
+                    .rename_note(id, title.to_owned(), self.0.organization)?;
                 self.changed();
                 self.refresh()?;
             }
@@ -673,9 +759,7 @@ impl SessionVm {
                         }
                     }
                     Err(e) => {
-                        self.0.save_failed.set(true);
-                        self.0.save_state.set(SaveState::Failed);
-                        self.0.status.set(tr!(save_failed()).resolve_now());
+                        self.mark_save_failed();
                         return Err(e);
                     }
                 }
@@ -709,7 +793,7 @@ impl SessionVm {
                     .set(chrono::Local::now().format("%H:%M").to_string());
                 self.0.save_state.set(SaveState::Saved);
             }
-            self.0.status.set(tr!(saved()).resolve_now());
+            self.0.status.set_if_changed(tr!(saved()).resolve_now());
         } else if !self.0.save_failed.get()
             && self.0.inflight.get().is_none()
             && (self.0.last_edit.get().elapsed() >= Duration::from_millis(750)
@@ -735,23 +819,46 @@ impl SessionVm {
         }
         if let Some(worker) = &self.0.worker {
             let seq = self.0.seq.get();
-            worker.save(
-                seq,
-                self.0.service.snapshot(self.0.assets.borrow().clone())?,
-            )?;
+            let sent = self
+                .0
+                .service
+                .snapshot(self.0.assets.borrow().clone())
+                .and_then(|snapshot| worker.save(seq, snapshot));
+            if let Err(e) = sent {
+                self.mark_save_failed();
+                return Err(e);
+            }
             self.0.inflight.set(Some(seq));
             self.0.save_state.set(SaveState::Saving);
             self.0.status.set(tr!(saving()).resolve_now());
         }
         Ok(())
     }
+    /// Save everything before the window closes. A failure keeps the window
+    /// open with the save-failed banner, which offers to close without saving.
     pub fn close(&self) -> Result<()> {
+        if self.0.close_anyway.get() {
+            return Ok(());
+        }
         self.flush()?;
         anyhow::ensure!(
             self.0.pending.borrow().is_empty(),
             "Finish text composition before closing"
         );
         self.rename_note()?;
+        let result = self.finish_saving();
+        if result.is_err() {
+            self.mark_save_failed();
+        }
+        result
+    }
+    /// Let the next close go ahead without saving: the save keeps failing and
+    /// the user chose to lose what is not saved.
+    pub fn close_without_saving(&self) {
+        self.0.close_anyway.set(true);
+    }
+    /// Wait for the save in flight, then save what came after it.
+    fn finish_saving(&self) -> Result<()> {
         if let Some(worker) = &self.0.worker {
             if self.0.inflight.get().is_some() {
                 let reply = worker.wait()?;
@@ -816,17 +923,15 @@ impl SessionVm {
             w.backup(path)?;
             w.wait()?.result?;
             if keep > 0 {
-                let prefix = format!("{stem}.");
+                // Only files named exactly as backups of this library, and
+                // never one open as a library, here or in another window.
                 let mut backups: Vec<_> = std::fs::read_dir(&dir)?
                     .filter_map(|e| e.ok().map(|e| e.path()))
                     .filter(|p| {
                         p != &self.0.path
-                            && p.extension().is_some_and(|e| e == "noton")
-                            && p.file_name().is_some_and(|n| {
-                                let n = n.to_string_lossy();
-                                n.starts_with(&prefix)
-                                    && n[prefix.len()..].starts_with(|c: char| c.is_ascii_digit())
-                            })
+                            && p.file_name()
+                                .is_some_and(|n| is_backup_of(&n.to_string_lossy(), &stem))
+                            && !LibraryFile::in_use(p)
                     })
                     .collect();
                 backups.sort();
@@ -837,6 +942,49 @@ impl SessionVm {
             }
         }
         Ok(())
+    }
+    /// Check that `path` opens as a library — or, when `new`, create it — so
+    /// that a locked, corrupt or unwritable file is reported in this window
+    /// rather than lost in the process that would have opened it.
+    pub fn prepare_library(path: &Path, new: bool) -> Result<()> {
+        if new {
+            anyhow::ensure!(!path.exists(), "Choose a new library filename");
+            let mut file = LibraryFile::open(path, true)?;
+            if let Err(e) = file.save(&noton_format::Library::empty("Noton".into())) {
+                // Half a library would only be refused on the next attempt.
+                drop(file);
+                let _ = std::fs::remove_file(path);
+                return Err(e);
+            }
+        } else {
+            anyhow::ensure!(path.exists(), "Library does not exist");
+            LibraryFile::open(path, false)?.load()?;
+        }
+        Ok(())
+    }
+    /// The pixels of image asset `uid`, decoded once while a page shows it.
+    pub fn image(&self, uid: Uuid) -> Result<Rc<RasterIcon>> {
+        if let Some(image) = self.0.images.borrow().get(&uid) {
+            return Ok(image.clone());
+        }
+        let bytes = self
+            .0
+            .assets
+            .borrow()
+            .iter()
+            .find(|a| a.uid == uid)
+            .map(|a| a.bytes.clone())
+            .context("Missing image asset")?;
+        let image = Rc::new(display_image(RasterIcon::decode(&bytes)?));
+        self.0.images.borrow_mut().insert(uid, image.clone());
+        Ok(image)
+    }
+    /// Forget the decoded images no page on screen shows.
+    pub fn keep_images(&self, shown: &HashSet<Uuid>) {
+        self.0
+            .images
+            .borrow_mut()
+            .retain(|uid, _| shown.contains(uid));
     }
     /// Write the library to `path` while the save to the library file keeps failing.
     pub fn save_copy(&self, path: &std::path::Path) -> Result<()> {
@@ -882,17 +1030,12 @@ impl SessionVm {
             .context("Unsupported image format")?
             .mime_type()
             .to_owned();
-        let asset = Asset {
-            uid: uuid::Uuid::new_v4(),
-            name: path
-                .file_name()
-                .context("Missing image name")?
-                .to_string_lossy()
-                .into_owned(),
-            mime,
-            digest: blake3::hash(&bytes).to_hex().to_string(),
-            bytes,
-        };
+        let name = path
+            .file_name()
+            .context("Missing image name")?
+            .to_string_lossy()
+            .into_owned();
+        let asset = Asset::new(name, mime, bytes);
         let note = self.0.note.get().context("Select a note")?;
         self.0.service.insert_image(
             note,
@@ -901,6 +1044,11 @@ impl SessionVm {
             image.height() as f64,
             self.page_stack()?,
         )?;
+        self.claim_page();
+        self.0
+            .images
+            .borrow_mut()
+            .insert(asset.uid, Rc::new(display_image(image)));
         self.0.assets.borrow_mut().push(asset);
         self.changed();
         self.refresh()?;
@@ -945,40 +1093,43 @@ impl SessionVm {
                     });
                 }
                 BlockKind::Image => {
-                    if html {
-                        let snapshot = self.0.service.snapshot(self.0.assets.borrow().clone())?;
-                        if let Some(block) = snapshot
-                            .folders
-                            .iter()
-                            .flat_map(|f| &f.notes)
-                            .flat_map(|n| &n.blocks)
-                            .find(|x| x.uid == b.uid)
-                        {
-                            if let noton_format::Content::Image { asset, .. } = &block.content {
-                                let assets = self.0.assets.borrow();
-                                let a = assets
-                                    .iter()
-                                    .find(|a| a.uid == *asset)
-                                    .context("Missing image")?;
-                                use base64::Engine;
-                                out.push_str(&format!(
-                                    "<img alt=\"{}\" src=\"data:{};base64,{}\">",
-                                    escape(&b.alt_text),
-                                    a.mime,
-                                    base64::engine::general_purpose::STANDARD.encode(&a.bytes)
-                                ));
-                            }
-                        }
+                    // A decorative image says nothing to a reader: empty alt.
+                    let alt = if b.decorative {
+                        ""
                     } else {
-                        out.push_str(&b.alt_text);
+                        b.alt_text.as_str()
+                    };
+                    if html {
+                        let uid = self.0.service.image_asset(b.id)?;
+                        let assets = self.0.assets.borrow();
+                        let a = assets
+                            .iter()
+                            .find(|a| a.uid == uid)
+                            .context("Missing image")?;
+                        use base64::Engine;
+                        out.push_str(&format!(
+                            "<img alt=\"{}\" src=\"data:{};base64,{}\">",
+                            escape(alt),
+                            a.mime,
+                            base64::engine::general_purpose::STANDARD.encode(&a.bytes)
+                        ));
+                    } else {
+                        out.push_str(alt);
                     }
                 }
                 BlockKind::Drawing => {
                     if html {
-                        out.push_str(&format!("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 560 320\" role=\"img\"><title>{}</title>",escape(&b.description)));
+                        // Samples live in a 560 × 320 space stretched over the
+                        // sketch, on paper, as on the canvas.
+                        out.push_str(&format!(
+                            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 560 320\" preserveAspectRatio=\"none\" role=\"img\"><title>{}</title><rect width=\"560\" height=\"320\" fill=\"#FFFEFB\"/>",
+                            b.width.round(),
+                            b.height.round(),
+                            escape(&b.description)
+                        ));
                         for id in b.strokes {
                             let s = self.0.service.ink_stroke(id)?;
-                            if !s.trashed {
+                            if !s.trashed && !self.0.service.is_discarded(Kind::Stroke, id) {
                                 let samples: Vec<noton_format::Sample> =
                                     serde_json::from_str(&s.samples_json)?;
                                 let points = samples
@@ -986,7 +1137,13 @@ impl SessionVm {
                                     .map(|p| format!("{},{}", p.x, p.y))
                                     .collect::<Vec<_>>()
                                     .join(" ");
-                                out.push_str(&format!("<polyline points=\"{points}\" fill=\"none\" stroke=\"#202830\" stroke-width=\"{}\"/>",s.brush_width));
+                                let rgba = s.brush_rgba as u32;
+                                out.push_str(&format!(
+                                    "<polyline points=\"{points}\" fill=\"none\" stroke=\"#{:06X}\" stroke-opacity=\"{:.3}\" stroke-width=\"{}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" vector-effect=\"non-scaling-stroke\"/>",
+                                    rgba >> 8,
+                                    (rgba & 0xff) as f64 / 255.,
+                                    s.brush_width
+                                ));
                             }
                         }
                         out.push_str("</svg>");
@@ -1051,21 +1208,13 @@ impl SessionVm {
             return;
         };
         let f = &self.0.format;
-        let set = |s: &Signal<bool>, v: bool| {
-            if s.get() != v {
-                s.set(v)
-            }
-        };
-        set(&f.bold, h.is_bold());
-        set(&f.italic, h.is_italic());
-        set(&f.underline, h.is_underline());
-        set(&f.strike, h.is_strikethrough());
-        set(&f.link, h.is_link());
-        set(&f.in_table, h.is_in_table());
-        let level = Some(h.get_heading_level().min(3));
-        if f.heading.get() != level {
-            f.heading.set(level);
-        }
+        f.bold.set_if_changed(h.is_bold());
+        f.italic.set_if_changed(h.is_italic());
+        f.underline.set_if_changed(h.is_underline());
+        f.strike.set_if_changed(h.is_strikethrough());
+        f.link.set_if_changed(h.is_link());
+        f.in_table.set_if_changed(h.is_in_table());
+        f.heading.set_if_changed(Some(h.get_heading_level().min(3)));
     }
     /// Put a sketch in drawing mode: its tools replace the formatting toolbar.
     pub fn enter_drawing(&self, id: EntityId) {
@@ -1123,9 +1272,7 @@ impl SessionVm {
                 .map(undo_phrase),
             library_focused: library,
         };
-        if self.0.undo_info.get() != info {
-            self.0.undo_info.set(info);
-        }
+        self.0.undo_info.set_if_changed(info);
     }
     /// Start the camera of a new canvas from where the last one of this note was.
     pub fn attach_camera(&self, camera: Camera) {
@@ -1245,6 +1392,7 @@ impl SessionVm {
         g.width = g.width.max(80.);
         g.height = g.height.max(40.);
         self.0.service.geometry(id, g, self.page_stack()?)?;
+        self.claim_page();
         self.changed();
         self.sync_block(id)
     }
@@ -1294,33 +1442,52 @@ impl SessionVm {
         self.0
             .service
             .arrange_block(id, front, self.page_stack()?)?;
+        self.claim_page();
         self.changed();
         self.sync_block(id)
     }
     pub fn duplicate(&self, id: EntityId) -> Result<()> {
         self.flush()?;
         let copy = self.0.service.duplicate_block(id, self.page_stack()?)?;
-        if let Ok(doc) = self.document(id) {
-            if self.0.service.block(copy)?.kind == BlockKind::RichText {
-                self.0.service.flush_text(copy, doc.to_djot()?)?;
-            }
+        // The copy starts from the stored text; a composing editor may be ahead.
+        if self.0.service.block(copy)?.kind == BlockKind::RichText {
+            self.0
+                .service
+                .flush_text(copy, self.document(id)?.to_djot()?)?;
         }
+        self.claim_page();
         self.0.selected.set(Some(copy));
         self.changed();
         self.refresh()?;
         self.rebuild_page();
         Ok(())
     }
-    /// Move a block `offset` places in reading order.
+    /// Move a block `offset` places in reading order, among the blocks a
+    /// reader sees: a block in the trash holds no place.
     pub fn reorder(&self, id: EntityId, offset: i32) -> Result<()> {
         let note = self.0.note.get().context("Select a note")?;
         let ids = self.0.service.note(note)?.blocks;
-        let index = ids.iter().position(|v| *v == id).unwrap_or(0);
-        let target = (index as i32 + offset).clamp(0, ids.len() as i32 - 1) as usize;
-        if target != index {
+        let live: Vec<usize> = ids
+            .iter()
+            .enumerate()
+            .filter(|(_, b)| {
+                !self.0.service.is_discarded(Kind::Block, **b)
+                    && self.0.service.block(**b).is_ok_and(|b| !b.trashed)
+            })
+            .map(|(i, _)| i)
+            .collect();
+        let Some(from) = live.iter().position(|i| ids[*i] == id) else {
+            return Ok(());
+        };
+        let to = (from as i64 + offset as i64).clamp(0, live.len() as i64 - 1) as usize;
+        if to != from {
+            // Taking the neighbour's index puts the block before it when
+            // moving earlier and, once the block is out of the list, after it
+            // when moving later.
             self.0
                 .service
-                .reorder_block(note, id, target, self.page_stack()?)?;
+                .reorder_block(note, id, live[to], self.page_stack()?)?;
+            self.claim_page();
             self.changed();
             self.rebuild_page();
         }
@@ -1343,10 +1510,9 @@ impl SessionVm {
     pub fn trash_block(&self, id: EntityId) -> Result<()> {
         let b = self.0.service.block(id)?;
         let stack = self.page_stack()?;
+        self.0.undo_toast.set_if_changed(None);
         self.0.service.trash_block(id, !b.trashed, stack)?;
-        if !b.trashed {
-            self.offer_undo(stack, tr!(block_trashed(name = b.label)).resolve_now());
-        }
+        self.claim_page();
         if self.0.editing.get() == Some(id) {
             self.0.editing.set(None);
         }
@@ -1356,11 +1522,16 @@ impl SessionVm {
         self.changed();
         self.refresh()?;
         self.rebuild_page();
+        // After the refresh, which may select another note and so drop offers.
+        if !b.trashed {
+            self.offer_undo(stack, tr!(block_trashed(name = b.label)).resolve_now());
+        }
         Ok(())
     }
     pub fn rename_block(&self, id: EntityId, label: String) -> Result<()> {
         if self.0.service.block(id)?.label != label {
             self.0.service.rename_block(id, label, self.page_stack()?)?;
+            self.claim_page();
             self.changed();
             self.rebuild_page();
         }
@@ -1378,6 +1549,21 @@ impl SessionVm {
             }
             _ => return Ok(()),
         }
+        self.claim_page();
+        self.changed();
+        self.rebuild_page();
+        Ok(())
+    }
+    /// Set an image's alt text and whether it is decorative, as one step.
+    pub fn describe_image(&self, id: EntityId, alt: String, decorative: bool) -> Result<()> {
+        let b = self.0.service.block(id)?;
+        if b.alt_text == alt && b.decorative == decorative {
+            return Ok(());
+        }
+        self.0
+            .service
+            .describe_image(id, alt, decorative, self.page_stack()?)?;
+        self.claim_page();
         self.changed();
         self.rebuild_page();
         Ok(())
@@ -1388,48 +1574,53 @@ impl SessionVm {
             self.0.undo_toast.set(Some((stack, seq, message)));
         }
     }
-    /// The snackbar's Undo: only if nothing was pushed since.
-    pub fn undo_toast(&self) -> Result<()> {
-        if let Some((stack, seq, _)) = self.0.undo_toast.get() {
-            self.0.undo_toast.set(None);
-            self.flush()?;
-            if self.0.service.undo_if_head(stack, seq)? {
-                self.changed();
-                self.refresh()?;
-                self.rebuild_page();
-            }
+    /// The snackbar's Undo of command `seq` on `stack`: only if nothing was
+    /// pushed on that stack since.
+    pub fn undo_offered(&self, stack: u64, seq: u64) -> Result<()> {
+        self.flush()?;
+        if self.0.service.undo_if_head(stack, seq)? {
+            self.changed();
+            self.refresh()?;
+            self.rebuild_page();
         }
         Ok(())
     }
     pub fn trash_note(&self, id: EntityId) -> Result<()> {
         let n = self.0.service.note(id)?;
         self.flush()?;
+        self.0.undo_toast.set_if_changed(None);
         self.0
             .service
             .trash_note(id, !n.trashed, self.0.organization)?;
+        self.changed();
+        // Trashing the open note selects another, which drops pending offers:
+        // make this one after it.
+        self.refresh()?;
         if !n.trashed {
             self.offer_undo(
                 self.0.organization,
                 tr!(note_trashed(name = n.title)).resolve_now(),
             );
         }
-        self.changed();
-        self.refresh()
+        Ok(())
     }
     pub fn trash_folder(&self, id: EntityId) -> Result<()> {
         let f = self.0.service.folder(id)?;
         self.flush()?;
+        self.0.undo_toast.set_if_changed(None);
         self.0
             .service
             .trash_folder(id, !f.trashed, self.0.organization)?;
+        self.changed();
+        // After the refresh, which may select another note and so drop offers.
+        self.refresh()?;
         if !f.trashed {
             self.offer_undo(
                 self.0.organization,
                 tr!(folder_trashed(name = f.title)).resolve_now(),
             );
         }
-        self.changed();
-        self.refresh()
+        Ok(())
     }
     /// Start renaming a folder in place.
     pub fn start_folder_rename(&self, id: EntityId) -> Result<()> {
@@ -1558,5 +1749,26 @@ impl SessionVm {
             .file_stem()
             .map(|s| s.to_string_lossy().into_owned())
             .unwrap_or_else(|| tr!(untitled_library()).resolve_now())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_backup_of;
+
+    #[test]
+    fn only_timestamped_backups_of_this_library_are_pruned() {
+        assert!(is_backup_of("Notes.20260927T231245.123.noton", "Notes"));
+        // Another library whose name starts like a backup.
+        assert!(!is_backup_of("Notes.2.noton", "Notes"));
+        assert!(!is_backup_of("Notes.2026 archive.noton", "Notes"));
+        // A backup of another library that shares the prefix.
+        assert!(!is_backup_of("Notes.2.20260927T231245.123.noton", "Notes"));
+        assert!(!is_backup_of(
+            "Notes.20260927T231245.123.noton.lock",
+            "Notes"
+        ));
+        assert!(!is_backup_of("Notes.noton", "Notes"));
+        assert!(is_backup_of("Notes.2.20260927T231245.123.noton", "Notes.2"));
     }
 }

@@ -88,10 +88,7 @@ fn view_switch(vm: &SessionVm, ctx: &mut BuildContext) -> SegmentedControl {
     let index = Signal::new(usize::from(vm.0.reading.get()));
     let i = index.clone();
     ctx.effect(&vm.0.reading, move |reading| {
-        let value = usize::from(*reading);
-        if i.get() != value {
-            i.set(value);
-        }
+        i.set_if_changed(usize::from(*reading));
     });
     let canvas = Segment::new(tr!(canvas())).icon(|| Icon::Canvas.widget());
     let reading = Segment::new(tr!(reading())).icon(|| Icon::Reading.widget());
@@ -198,6 +195,7 @@ fn header(vm: &SessionVm, ctx: &mut BuildContext) -> impl Widget + 'static {
 /// The save-failed banner (persistent, no dismiss) and the error banner.
 fn banners(vm: &SessionVm) -> VStack {
     let failed = vm.0.save_state.map(|s| *s == SaveState::Failed);
+    let discard = vm.clone();
     let save_failed = Banner::error(tr!(save_failed_title()))
         .description(tr!(save_failed_detail()))
         .action(
@@ -212,6 +210,16 @@ fn banners(vm: &SessionVm) -> VStack {
                     Button::new(tr!(save_copy()))
                         .variant(ButtonVariant::Plain)
                         .on_activate_fn(|ctx| ctx.send_intent(Intent::new("file.save_copy"))),
+                )
+                // Without it a library whose disk went away could not be closed.
+                .child(
+                    Button::new(tr!(close_without_saving()))
+                        .variant(ButtonVariant::Plain)
+                        .text_role(TextRole::Error)
+                        .on_activate_fn(move |ctx| {
+                            discard.close_without_saving();
+                            ctx.close_window();
+                        }),
                 ),
         );
     let v = vm.clone();
@@ -247,10 +255,12 @@ fn banners(vm: &SessionVm) -> VStack {
                         .variant(ButtonVariant::Plain)
                         .on_activate_fn(move |_| {
                             never.0.narrow_hint.set(false);
-                            let mut p = crate::settings::load().unwrap_or_default();
-                            p.narrow_hint_dismissed = true;
-                            never.report(crate::settings::save(&p));
-                            never.0.prefs.borrow_mut().narrow_hint_dismissed = true;
+                            never.report(
+                                crate::settings::persist(&never, |p| {
+                                    p.narrow_hint_dismissed = true
+                                })
+                                .map(drop),
+                            );
                         }),
                 ),
         )

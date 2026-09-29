@@ -108,15 +108,13 @@ fn text_editor(
         if *active {
             // Typing makes the card Editing, so its Escape hands the keyboard
             // back to the card and arrows move the block.
-            if card_mode.get() != CardMode::Editing {
-                card_mode.set(CardMode::Editing);
-            }
+            card_mode.set_if_changed(CardMode::Editing);
             if let Some(inner) = weak.upgrade() {
                 inner.edit.claim_text(text_surface.clone());
                 inner.active_text.set(Some(id));
                 inner.active_block.set(Some(id));
-                if inner.drawing.get().is_none() && inner.editing.get() != Some(id) {
-                    inner.editing.set(Some(id));
+                if inner.drawing.get().is_none() {
+                    inner.editing.set_if_changed(Some(id));
                 }
                 inner.format_dirty.set(true);
             }
@@ -157,23 +155,21 @@ fn text_editor(
 }
 
 fn image(vm: &SessionVm, b: &Block) -> anyhow::Result<Box<dyn Widget>> {
-    let data = vm.0.service.snapshot(vm.0.assets.borrow().clone())?;
-    let record = data
-        .folders
-        .iter()
-        .flat_map(|f| &f.notes)
-        .flat_map(|n| &n.blocks)
-        .find(|x| x.uid == b.uid)
-        .ok_or_else(|| anyhow::anyhow!("Missing image block"))?;
-    let noton_format::Content::Image { asset, .. } = &record.content else {
-        anyhow::bail!("Invalid image block")
+    let image = vm.image(vm.0.service.image_asset(b.id)?)?;
+    // `from_raw`, not `new`: `new` names the texture after the icon's address,
+    // which two images can share, and then both show the first one's pixels.
+    let picture = ImageWidget::from_raw(image.pixels().to_vec(), image.width(), image.height())
+        .resizable(true);
+    // A decorative image is hidden from screen readers and has no alt text.
+    let (picture, caption, badge) = if b.decorative {
+        (picture.a11y_hidden(), String::new(), tr!(decorative()))
+    } else {
+        (
+            picture.alt(b.alt_text.clone()),
+            b.alt_text.clone(),
+            tr!(alt_badge()),
+        )
     };
-    let asset = data
-        .assets
-        .iter()
-        .find(|a| a.uid == *asset)
-        .ok_or_else(|| anyhow::anyhow!("Missing image asset"))?;
-    let image = teksilo::canvas::RasterIcon::decode(&asset.bytes)?;
     let caption_style = teksilo::tokens::TextStyle {
         family: theme::CONTENT_FAMILY.into(),
         size: 13.,
@@ -184,20 +180,14 @@ fn image(vm: &SessionVm, b: &Block) -> anyhow::Result<Box<dyn Widget>> {
     Ok(Box::new(
         VStack::new()
             .spacing(6.)
-            .child(
-                Expand::new().child(
-                    ImageWidget::new(&image)
-                        .resizable(true)
-                        .alt(b.alt_text.clone()),
-                ),
-            )
+            .child(Expand::new().child(picture))
             .child(
                 HStack::new()
                     .spacing(8.)
                     .alignment(VAlignment::Center)
                     .child(
                         Expand::horizontal().child(
-                            TextWidget::new(lit!(b.alt_text.clone()))
+                            TextWidget::new(lit!(caption))
                                 .style(caption_style)
                                 .color(TextRole::Secondary)
                                 .overflow(TextOverflow::Ellipsis(EllipsisMode::Trailing))
@@ -206,7 +196,7 @@ fn image(vm: &SessionVm, b: &Block) -> anyhow::Result<Box<dyn Widget>> {
                         ),
                     )
                     .child(
-                        Badge::new(tr!(alt_badge()))
+                        Badge::new(badge)
                             .tooltip(tr!(alt_text()))
                             .text_role(TextRole::Secondary),
                     ),
@@ -709,6 +699,7 @@ fn canvas(
             }
             if record.outcome == TxnOutcome::Committed && !values.is_empty() {
                 v.0.service.geometries(&values, v.page_stack()?)?;
+                v.claim_page();
                 v.changed();
             }
             Ok(())
@@ -734,11 +725,14 @@ fn canvas(
     let m = map.clone();
     ctx.effect(&selection.selection_signal(), move |ids| {
         let selected = ids.iter().next().and_then(|i| m.borrow().get(i).copied());
-        if v.0.selected.get() != selected {
-            v.0.selected.set(selected);
-        }
+        v.0.selected.set_if_changed(selected);
         if v.0.editing.get().is_some() && selected != v.0.editing.get() {
             v.0.editing.set(None);
+        }
+        // Selecting another block than the one last typed in makes the page,
+        // not that text, what Ctrl+Z undoes.
+        if selected.is_some() && selected != v.0.active_text.get() {
+            v.claim_page();
         }
     });
     let v = vm.clone();
@@ -775,9 +769,7 @@ fn canvas(
     vm.attach_camera(camera.clone());
     let v = vm.clone();
     ctx.effect(&camera.zoom, move |z| {
-        if (v.0.zoom.get() - *z).abs() > f32::EPSILON {
-            v.0.zoom.set(*z);
-        }
+        v.0.zoom.set_if_changed(*z);
     });
     let keys = vm.clone();
     let empty = blocks.is_empty();
@@ -813,27 +805,31 @@ fn reading(vm: &SessionVm, note: EntityId) -> anyhow::Result<Box<dyn Widget>> {
     if blocks.is_empty() {
         list = list.child(caption(tr!(empty_note())));
     }
-    for (i, b) in blocks.into_iter().enumerate() {
+    // Reading order counts only the blocks a reader sees; one in the trash
+    // (shown while the trash is) has no position.
+    let mut position = 0;
+    for b in blocks {
         let id = b.id;
+        let live = !b.trashed;
+        position += usize::from(live);
         let (up, down) = (vm.clone(), vm.clone());
-        let position = Badge::new(lit!((i + 1).to_string())).tooltip(tr!(block_position(
-            position = (i + 1) as i64,
-            count = count as i64
-        )));
-        let gutter = VStack::new()
-            .spacing(4.)
-            .alignment(HAlignment::Center)
-            .child(position)
+        let mut gutter = VStack::new().spacing(4.).alignment(HAlignment::Center);
+        if live {
+            gutter = gutter.child(Badge::new(lit!(position.to_string())).tooltip(tr!(
+                block_position(position = position as i64, count = count as i64)
+            )));
+        }
+        let gutter = gutter
             .child(
                 icon_button(Icon::ArrowUp, tr!(earlier()))
                     .size(IconButtonSize::Compact)
-                    .enabled(i > 0 && !b.trashed)
+                    .enabled(live && position > 1)
                     .on_activate_fn(move |_| up.report(up.reorder(id, -1))),
             )
             .child(
                 icon_button(Icon::ArrowDown, tr!(later()))
                     .size(IconButtonSize::Compact)
-                    .enabled(i + 1 < count && !b.trashed)
+                    .enabled(live && position < count)
                     .on_activate_fn(move |_| down.report(down.reorder(id, 1))),
             );
         let mut header = HStack::new()
@@ -935,6 +931,19 @@ impl Widget for PageView {
                 Box::new(TextWidget::new(tr!(error())))
             }
         };
+        // Decoded images are kept only while this page shows them.
+        let shown = self
+            .vm
+            .0
+            .note
+            .get()
+            .and_then(|note| self.vm.0.service.blocks(note).ok())
+            .unwrap_or_default()
+            .iter()
+            .filter(|b| b.kind == BlockKind::Image)
+            .filter_map(|b| self.vm.0.service.image_asset(b.id).ok())
+            .collect();
+        self.vm.keep_images(&shown);
         let root = ctx.add_boxed(widget);
         self.root = Some(root);
         vec![root]

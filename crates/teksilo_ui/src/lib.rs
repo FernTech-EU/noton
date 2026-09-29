@@ -92,7 +92,7 @@ fn run_app() -> anyhow::Result<()> {
     }
     let client = frontend::EventHubClient::new(&vm.0.service.context.event_hub);
     client.start(vm.0.service.context.shutdown_rx.clone());
-    let prefs = settings::load()?;
+    let prefs = settings::load_or_default();
     let locale = locale.or(prefs.locale.clone());
     let locales = teksilo::i18n::I18nConfig::new()
         .framework_locales(teksilo::widgets::framework_locales())

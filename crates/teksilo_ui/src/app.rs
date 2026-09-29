@@ -400,11 +400,9 @@ fn register_actions(vm: &SessionVm, ctx: &mut BuildContext) {
                     _ => return,
                 };
                 vm.report((|| {
-                    if new {
-                        anyhow::ensure!(!path.exists(), "Choose a new library filename");
-                    } else {
-                        anyhow::ensure!(path.exists(), "Library does not exist");
-                    }
+                    // Open (or create) it here first: the new window's process
+                    // could only report a failure on its own stderr.
+                    SessionVm::prepare_library(&path, new)?;
                     std::process::Command::new(std::env::current_exe()?)
                         .arg("--library")
                         .arg(path)
@@ -649,9 +647,7 @@ impl Widget for AppRoot {
             let (split, narrow) = (self.split.clone(), vm.0.narrow.clone());
             let update = move |width: u32, stage: usize| {
                 let is_narrow = width < 760;
-                if narrow.get() != is_narrow {
-                    narrow.set(is_narrow);
-                }
+                narrow.set_if_changed(is_narrow);
                 for i in 0..3 {
                     split.set_pane_visible(i, !is_narrow || i == stage);
                 }

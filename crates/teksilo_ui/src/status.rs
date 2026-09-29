@@ -18,14 +18,16 @@ fn separator() -> impl Widget + 'static {
 
 /// Present the snackbar that takes back a trash, if one was just done.
 pub fn offer_undo(vm: &SessionVm, ctx: &mut EventContext) {
-    let Some((_, _, message)) = vm.0.undo_toast.get() else {
+    let Some((stack, seq, message)) = vm.0.undo_toast.get() else {
         return;
     };
+    // Offered once: a later restore must not present this trash again.
+    vm.0.undo_toast.set(None);
     let v = vm.clone();
     Toast::info(lit!(message.clone()))
         .leading(Icon::Trash.widget())
         .action(ToastAction::primary(tr!(undo()), move |_| {
-            v.report(v.undo_toast())
+            v.report(v.undo_offered(stack, seq))
         }))
         .auto_dismiss_after(std::time::Duration::from_secs(8))
         .announcement(lit!(message))

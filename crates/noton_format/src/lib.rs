@@ -3,9 +3,10 @@ use anyhow::{Context, Result, ensure};
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fs::{File, OpenOptions},
     path::{Path, PathBuf},
+    sync::Arc,
 };
 use uuid::Uuid;
 
@@ -134,6 +135,8 @@ impl Stroke {
         Ok(())
     }
 }
+/// An imported image. Assets never change once imported, so the bytes are
+/// shared: cloning an asset (or a whole library snapshot) copies no pixels.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Asset {
@@ -141,7 +144,19 @@ pub struct Asset {
     pub name: String,
     pub mime: String,
     pub digest: String,
-    pub bytes: Vec<u8>,
+    pub bytes: Arc<[u8]>,
+}
+impl Asset {
+    /// A new asset whose digest is computed from `bytes`.
+    pub fn new(name: String, mime: String, bytes: Vec<u8>) -> Self {
+        Self {
+            uid: Uuid::new_v4(),
+            name,
+            mime,
+            digest: blake3::hash(&bytes).to_hex().to_string(),
+            bytes: bytes.into(),
+        }
+    }
 }
 impl Library {
     pub fn empty(title: String) -> Self {
@@ -152,6 +167,9 @@ impl Library {
             assets: vec![],
         }
     }
+    /// Check structure and limits. Asset digests are not recomputed here (see
+    /// [`verify_asset_digests`](Self::verify_asset_digests)): this runs on
+    /// every save, and assets are immutable once imported or loaded.
     pub fn validate(&self) -> Result<()> {
         let mut ids = HashSet::new();
         let mut insert = |id: Uuid| -> Result<()> {
@@ -163,10 +181,6 @@ impl Library {
         for a in &self.assets {
             insert(a.uid)?;
             ensure!(a.bytes.len() <= 100 * 1024 * 1024, "Image exceeds 100 MiB");
-            ensure!(
-                blake3::hash(&a.bytes).to_hex().as_str() == a.digest,
-                "Asset checksum mismatch"
-            );
             ensure!(
                 ["image/png", "image/jpeg", "image/webp"].contains(&a.mime.as_str()),
                 "Unsupported image type"
@@ -196,6 +210,16 @@ impl Library {
                     }
                 }
             }
+        }
+        Ok(())
+    }
+    /// Recompute every asset's digest: run on data read from disk.
+    pub fn verify_asset_digests(&self) -> Result<()> {
+        for a in &self.assets {
+            ensure!(
+                blake3::hash(&a.bytes).to_hex().as_str() == a.digest,
+                "Asset checksum mismatch"
+            );
         }
         Ok(())
     }
@@ -262,6 +286,23 @@ impl LibraryFile {
     pub fn path(&self) -> &Path {
         &self.path
     }
+    /// Whether some process (this one included) has `path` open as a library.
+    pub fn in_use(path: &Path) -> bool {
+        let Ok(lock) = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(path.with_extension("noton.lock"))
+        else {
+            return false;
+        };
+        match fs2::FileExt::try_lock_exclusive(&lock) {
+            Ok(()) => {
+                let _ = fs2::FileExt::unlock(&lock);
+                false
+            }
+            Err(_) => true,
+        }
+    }
     pub fn save(&mut self, library: &Library) -> Result<()> {
         library.validate()?;
         let tx = self
@@ -325,10 +366,20 @@ impl LibraryFile {
             [],
         )?;
         tx.execute("DELETE FROM live", [])?;
+        // The payload names the digest, so an unchanged payload means unchanged
+        // bytes: only new or changed assets bind (and write) their blobs.
+        let stored: HashMap<String, String> = tx
+            .prepare("SELECT uid,payload FROM assets")?
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+            .collect::<rusqlite::Result<_>>()?;
         for a in &library.assets {
-            let meta = serde_json::json!({"name":a.name,"mime":a.mime,"digest":a.digest});
-            tx.execute("INSERT INTO assets VALUES(?1,?2,?3) ON CONFLICT(uid) DO UPDATE SET payload=excluded.payload,bytes=excluded.bytes WHERE payload!=excluded.payload OR bytes!=excluded.bytes",params![a.uid.to_string(),meta.to_string(),a.bytes])?;
-            tx.execute("INSERT INTO live VALUES(?1)", [a.uid.to_string()])?;
+            let uid = a.uid.to_string();
+            let meta =
+                serde_json::json!({"name":a.name,"mime":a.mime,"digest":a.digest}).to_string();
+            if stored.get(&uid) != Some(&meta) {
+                tx.execute("INSERT INTO assets VALUES(?1,?2,?3) ON CONFLICT(uid) DO UPDATE SET payload=excluded.payload,bytes=excluded.bytes",params![uid,meta,&a.bytes[..]])?;
+            }
+            tx.execute("INSERT INTO live VALUES(?1)", [uid])?;
         }
         tx.execute(
             "DELETE FROM assets WHERE uid NOT IN (SELECT uid FROM live)",
@@ -433,10 +484,11 @@ impl LibraryFile {
                 name: v["name"].as_str().context("Missing asset name")?.into(),
                 mime: v["mime"].as_str().context("Missing MIME")?.into(),
                 digest: v["digest"].as_str().context("Missing digest")?.into(),
-                bytes,
+                bytes: bytes.into(),
             });
         }
         library.validate()?;
+        library.verify_asset_digests()?;
         Ok(library)
     }
     pub fn backup(&self, destination: &Path) -> Result<()> {
@@ -448,5 +500,34 @@ impl LibraryFile {
         let check: String = backup.query_row("PRAGMA integrity_check", [], |r| r.get(0))?;
         ensure!(check == "ok", "Backup verification failed");
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn images_roundtrip_and_a_changed_blob_is_refused() {
+        let d = tempfile::tempdir().unwrap();
+        let path = d.path().join("t.noton");
+        let mut library = Library::empty("T".into());
+        library.assets.push(Asset::new(
+            "a.png".into(),
+            "image/png".into(),
+            vec![1, 2, 3],
+        ));
+        let mut file = LibraryFile::open(&path, true).unwrap();
+        file.save(&library).unwrap();
+        // The second save finds the image unchanged and leaves it alone.
+        file.save(&library).unwrap();
+        assert_eq!(file.load().unwrap(), library);
+        assert!(LibraryFile::in_use(&path));
+        file.connection
+            .execute("UPDATE assets SET bytes = x'010204'", [])
+            .unwrap();
+        assert!(file.load().is_err(), "the digest no longer matches");
+        drop(file);
+        assert!(!LibraryFile::in_use(&path));
     }
 }

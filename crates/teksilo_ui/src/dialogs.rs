@@ -139,7 +139,8 @@ pub fn position_and_size(vm: &SessionVm, id: EntityId, ctx: &mut EventContext) {
     );
 }
 
-/// The image's alt text, or a sketch's title and description.
+/// The image's alt text and whether it is decorative, or a sketch's title
+/// and description.
 pub fn describe(vm: &SessionVm, id: EntityId, ctx: &mut EventContext) {
     let Ok(b) = vm.0.service.block(id) else {
         return;
@@ -147,13 +148,21 @@ pub fn describe(vm: &SessionVm, id: EntityId, ctx: &mut EventContext) {
     let v = vm.clone();
     if b.kind == BlockKind::Image {
         let alt = Signal::new(b.alt_text);
-        let a = alt.clone();
+        let decorative = Signal::new(b.decorative);
+        let (a, d) = (alt.clone(), decorative.clone());
         present(
             ctx,
             tr!(alt_text()),
             Some(tr!(alt_help())),
-            move |apply| Box::new(AutoFocus::new(field(&a, tr!(alt_text()), &apply))),
-            move || v.report(v.describe(id, alt.get())),
+            move |apply| {
+                Box::new(
+                    VStack::new()
+                        .spacing(12.)
+                        .child(AutoFocus::new(field(&a, tr!(alt_text()), &apply)))
+                        .child(Checkbox::new(d).label(tr!(decorative_image()))),
+                )
+            },
+            move || v.report(v.describe_image(id, alt.get(), decorative.get())),
         );
     } else {
         let title = Signal::new(b.label);

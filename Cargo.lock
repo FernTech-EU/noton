@@ -4555,7 +4555,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "teksilo-app",
  "teksilo-async",
@@ -4578,7 +4578,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-app"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "base64",
  "png",
@@ -4600,7 +4600,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-async"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "async-channel 2.5.0",
  "teksilo-app",
@@ -4610,7 +4610,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-async-std"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "async-std",
  "teksilo-app",
@@ -4620,7 +4620,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-automation"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -4631,7 +4631,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-canvas"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "bytemuck",
  "image-webp",
@@ -4646,7 +4646,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-core"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "accesskit",
  "accesskit_consumer",
@@ -4661,7 +4661,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-data"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "slotmap",
  "teksilo-core",
@@ -4669,7 +4669,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-i18n"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "fixed_decimal",
  "fluent-bundle",
@@ -4692,7 +4692,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-i18n-macros"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "fluent-syntax",
  "proc-macro2",
@@ -4702,7 +4702,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-inspector"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "serde_json",
  "teksilo-app",
@@ -4718,7 +4718,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-macros"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4728,7 +4728,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-parse"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "proc-macro2",
  "syn 3.0.6",
@@ -4736,7 +4736,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-platform"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -4768,7 +4768,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-render"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "bytemuck",
  "pollster 1.0.1",
@@ -4780,7 +4780,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-resources"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4790,7 +4790,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-scene"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "accesskit",
  "teksilo-canvas",
@@ -4804,7 +4804,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-settings"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "etcetera",
  "fs2",
@@ -4819,7 +4819,7 @@ dependencies = [
 
 [[package]]
 name = "teksilo-text"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "teksilo-canvas",
  "teksilo-tokens",
@@ -4829,14 +4829,14 @@ dependencies = [
 
 [[package]]
 name = "teksilo-tokens"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "teksilo-widgets"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "jiff",
  "open",
@@ -4885,7 +4885,7 @@ dependencies = [
 
 [[package]]
 name = "text-document"
-version = "1.12.2"
+version = "1.12.3"
 dependencies = [
  "anyhow",
  "base64",
@@ -4900,7 +4900,7 @@ dependencies = [
 
 [[package]]
 name = "text-document-common"
-version = "1.12.2"
+version = "1.12.3"
 dependencies = [
  "anyhow",
  "base64",
@@ -4923,7 +4923,7 @@ dependencies = [
 
 [[package]]
 name = "text-document-direct-access"
-version = "1.12.2"
+version = "1.12.3"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4936,7 +4936,7 @@ dependencies = [
 
 [[package]]
 name = "text-document-editing"
-version = "1.12.2"
+version = "1.12.3"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4949,7 +4949,7 @@ dependencies = [
 
 [[package]]
 name = "text-document-formatting"
-version = "1.12.2"
+version = "1.12.3"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4962,7 +4962,7 @@ dependencies = [
 
 [[package]]
 name = "text-document-frontend"
-version = "1.12.2"
+version = "1.12.3"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4980,7 +4980,7 @@ dependencies = [
 
 [[package]]
 name = "text-document-inspection"
-version = "1.12.2"
+version = "1.12.3"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4993,7 +4993,7 @@ dependencies = [
 
 [[package]]
 name = "text-document-io"
-version = "1.12.2"
+version = "1.12.3"
 dependencies = [
  "anyhow",
  "chrono",
@@ -5013,7 +5013,7 @@ dependencies = [
 
 [[package]]
 name = "text-document-macros"
-version = "1.12.2"
+version = "1.12.3"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -5023,7 +5023,7 @@ dependencies = [
 
 [[package]]
 name = "text-document-search"
-version = "1.12.2"
+version = "1.12.3"
 dependencies = [
  "anyhow",
  "caseless",

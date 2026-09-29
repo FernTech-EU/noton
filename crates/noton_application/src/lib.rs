@@ -10,13 +10,79 @@ use common::{
 };
 use frontend::AppContext;
 use noton_format as format;
-use std::{any::Any, collections::HashMap};
+use std::{
+    any::Any,
+    collections::{HashMap, HashSet},
+    sync::{Arc, Mutex},
+};
 use uuid::Uuid;
+
+/// The kinds of entity a command creates. Entity ids are only unique within
+/// a kind: the first folder, note and block are all id 1.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Kind {
+    Folder,
+    Note,
+    Block,
+    Stroke,
+}
+/// Entities whose creation is currently undone and that held nothing added
+/// since. They stay in the store (as trashed) so a redo can bring them back,
+/// but they are not in the Trash, the lists, search or the saved file: the
+/// user never kept them. An undone creation that did gain content (text typed
+/// into a block, blocks added to a note: histories of their own) goes to the
+/// Trash instead, where it stays restorable.
+type Discarded = Arc<Mutex<HashSet<(Kind, EntityId)>>>;
+/// What a creation command created, with the text a block started with.
+struct Created {
+    kind: Kind,
+    id: EntityId,
+    text: String,
+}
+/// Whether `c` holds nothing added since it was created. Strokes, a sketch's
+/// description and an image's alt text are taken back by earlier steps of the
+/// same stack; a note's blocks and a block's text are not.
+fn untouched(
+    db: &common::database::db_context::DbContext,
+    c: &Created,
+    discarded: &HashSet<(Kind, EntityId)>,
+) -> Result<bool> {
+    let tx = Transaction::begin_read_transaction(db)?;
+    let gone = |kind, ids: &[EntityId]| ids.iter().all(|id| discarded.contains(&(kind, *id)));
+    Ok(match c.kind {
+        Kind::Folder => gone(
+            Kind::Note,
+            &repo::create_folder_repository(&tx)?
+                .get(&c.id)?
+                .context("Missing folder")?
+                .notes,
+        ),
+        Kind::Note => gone(
+            Kind::Block,
+            &repo::create_note_repository(&tx)?
+                .get(&c.id)?
+                .context("Missing note")?
+                .blocks,
+        ),
+        Kind::Block => {
+            let b = repo::create_block_repository(&tx)?
+                .get(&c.id)?
+                .context("Missing block")?;
+            match b.kind {
+                BlockKind::RichText => b.content_djot == c.text,
+                BlockKind::Drawing => b.description.is_empty() && gone(Kind::Stroke, &b.strokes),
+                BlockKind::Image => true,
+            }
+        }
+        Kind::Stroke => true,
+    })
+}
 
 #[derive(Clone, Debug)]
 pub struct LibraryService {
     pub context: AppContext,
     pub library_id: EntityId,
+    discarded: Discarded,
 }
 fn transaction<T>(
     ctx: &AppContext,
@@ -53,6 +119,7 @@ pub enum Patch {
     Geometry(EntityId, format::Geometry),
     Description(EntityId, String),
     AltText(EntityId, String),
+    Decorative(EntityId, bool),
     FolderNotes(EntityId, Vec<EntityId>),
     NoteBlocks(EntityId, Vec<EntityId>),
     LibraryFolders(EntityId, Vec<EntityId>),
@@ -131,6 +198,13 @@ fn apply_parts(
                     e.updated_at = chrono::Utc::now();
                     r.update(ev, &e)?;
                 }
+                Patch::Decorative(id, value) => {
+                    let mut r = repo::create_block_repository(tx)?;
+                    let mut e = r.get(id)?.context("Missing block")?;
+                    e.decorative = *value;
+                    e.updated_at = chrono::Utc::now();
+                    r.update(ev, &e)?;
+                }
                 Patch::Geometry(id, value) => {
                     value.validate()?;
                     let mut r = repo::create_block_repository(tx)?;
@@ -177,13 +251,26 @@ struct Command {
     events: std::sync::Arc<common::event::EventHub>,
     before: Vec<Patch>,
     after: Vec<Patch>,
+    /// What this command created: discarded while it is undone, if untouched.
+    created: Option<Created>,
+    discarded: Discarded,
     label: &'static str,
 }
 impl UndoRedoCommand for Command {
     fn undo(&mut self) -> Result<()> {
-        apply_parts(&self.db, &self.events, &self.before)
+        apply_parts(&self.db, &self.events, &self.before)?;
+        if let Some(c) = &self.created {
+            let mut discarded = lock(&self.discarded);
+            if untouched(&self.db, c, &discarded)? {
+                discarded.insert((c.kind, c.id));
+            }
+        }
+        Ok(())
     }
     fn redo(&mut self) -> Result<()> {
+        if let Some(c) = &self.created {
+            lock(&self.discarded).remove(&(c.kind, c.id));
+        }
         apply_parts(&self.db, &self.events, &self.after)
     }
     fn as_any(&self) -> &dyn Any {
@@ -192,6 +279,9 @@ impl UndoRedoCommand for Command {
     fn label(&self) -> Option<UndoLabel> {
         Some(UndoLabel::act(self.label))
     }
+}
+fn lock(discarded: &Discarded) -> std::sync::MutexGuard<'_, HashSet<(Kind, EntityId)>> {
+    discarded.lock().unwrap_or_else(|e| e.into_inner())
 }
 impl LibraryService {
     pub fn new(title: String) -> Result<Self> {
@@ -202,6 +292,7 @@ impl LibraryService {
         stack: u64,
         before: Vec<Patch>,
         after: Vec<Patch>,
+        created: Option<Created>,
         label: &'static str,
     ) -> Result<()> {
         common::long_operation::lock_or_recover(&self.context.undo_redo_manager)
@@ -211,11 +302,46 @@ impl LibraryService {
                     events: self.context.event_hub.clone(),
                     before,
                     after,
+                    created,
+                    discarded: self.discarded.clone(),
                     label,
                 }),
                 Some(stack),
             )?;
         Ok(())
+    }
+    /// Record the creation of `id`: undo trashes it (and discards it if it is
+    /// untouched), redo restores it.
+    fn record_creation(
+        &self,
+        stack: u64,
+        kind: Kind,
+        id: EntityId,
+        label: &'static str,
+    ) -> Result<()> {
+        let trash = match kind {
+            Kind::Folder => Patch::FolderTrash,
+            Kind::Note => Patch::NoteTrash,
+            Kind::Block => Patch::BlockTrash,
+            Kind::Stroke => Patch::StrokeTrash,
+        };
+        let text = if kind == Kind::Block {
+            self.block(id)?.content_djot
+        } else {
+            String::new()
+        };
+        self.record(
+            stack,
+            vec![trash(id, true)],
+            vec![trash(id, false)],
+            Some(Created { kind, id, text }),
+            label,
+        )
+    }
+    /// Whether the `kind` entity `id` was created by a command that is
+    /// currently undone, and so is in neither the lists nor the Trash.
+    pub fn is_discarded(&self, kind: Kind, id: EntityId) -> bool {
+        lock(&self.discarded).contains(&(kind, id))
     }
     fn edit(
         &self,
@@ -225,7 +351,7 @@ impl LibraryService {
         label: &'static str,
     ) -> Result<()> {
         apply(&self.context, &after)?;
-        self.record(stack, before, after, label)
+        self.record(stack, before, after, None, label)
     }
     pub fn undo(&self, stack: u64) -> Result<()> {
         common::long_operation::lock_or_recover(&self.context.undo_redo_manager).undo(Some(stack))
@@ -293,26 +419,42 @@ impl LibraryService {
             .get(&id)?
             .context("Missing ink_stroke")
     }
+    /// The library's folders, trashed ones included, discarded ones not.
     pub fn folders(&self) -> Result<Vec<Folder>> {
         self.library(self.library_id)?
             .folders
             .into_iter()
+            .filter(|id| !self.is_discarded(Kind::Folder, *id))
             .map(|id| self.folder(id))
             .collect()
     }
+    /// The folder's notes, trashed ones included, discarded ones not.
     pub fn notes(&self, folder: EntityId) -> Result<Vec<Note>> {
         self.folder(folder)?
             .notes
             .into_iter()
+            .filter(|id| !self.is_discarded(Kind::Note, *id))
             .map(|id| self.note(id))
             .collect()
     }
+    /// The note's blocks, trashed ones included, discarded ones not.
     pub fn blocks(&self, note: EntityId) -> Result<Vec<Block>> {
         self.note(note)?
             .blocks
             .into_iter()
+            .filter(|id| !self.is_discarded(Kind::Block, *id))
             .map(|id| self.block(id))
             .collect()
+    }
+    /// The UUID of the asset an image block shows.
+    pub fn image_asset(&self, block: EntityId) -> Result<Uuid> {
+        let b = self.block(block)?;
+        ensure!(b.kind == BlockKind::Image, "Not an image");
+        let tx = Transaction::begin_read_transaction(&self.context.db_context)?;
+        Ok(repo::create_asset_repository(&tx)?
+            .get(&b.asset.context("Missing asset reference")?)?
+            .context("Missing asset")?
+            .uid)
     }
     pub fn create_folder(&self, title: String, stack: u64) -> Result<EntityId> {
         let e = transaction(&self.context, |tx, ev| {
@@ -329,12 +471,7 @@ impl LibraryService {
                 -1,
             )?)
         })?;
-        self.record(
-            stack,
-            vec![Patch::FolderTrash(e.id, true)],
-            vec![Patch::FolderTrash(e.id, false)],
-            "create_folder",
-        )?;
+        self.record_creation(stack, Kind::Folder, e.id, "create_folder")?;
         Ok(e.id)
     }
     pub fn create_note(&self, folder: EntityId, title: String, stack: u64) -> Result<EntityId> {
@@ -357,12 +494,7 @@ impl LibraryService {
                 -1,
             )?)
         })?;
-        self.record(
-            stack,
-            vec![Patch::NoteTrash(e.id, true)],
-            vec![Patch::NoteTrash(e.id, false)],
-            "create_note",
-        )?;
+        self.record_creation(stack, Kind::Note, e.id, "create_note")?;
         Ok(e.id)
     }
     /// The size a new block of `kind` starts at.
@@ -424,12 +556,7 @@ impl LibraryService {
                 -1,
             )?)
         })?;
-        self.record(
-            stack,
-            vec![Patch::BlockTrash(e.id, true)],
-            vec![Patch::BlockTrash(e.id, false)],
-            "create_block",
-        )?;
+        self.record_creation(stack, Kind::Block, e.id, "create_block")?;
         Ok(e.id)
     }
     pub fn insert_image(
@@ -492,12 +619,7 @@ impl LibraryService {
                 -1,
             )?)
         })?;
-        self.record(
-            stack,
-            vec![Patch::BlockTrash(e.id, true)],
-            vec![Patch::BlockTrash(e.id, false)],
-            "insert_image",
-        )?;
+        self.record_creation(stack, Kind::Block, e.id, "insert_image")?;
         Ok(e.id)
     }
     pub fn flush_text(&self, id: EntityId, djot: String) -> Result<bool> {
@@ -560,6 +682,7 @@ impl LibraryService {
     }
     pub fn rename_folder(&self, id: EntityId, value: String, stack: u64) -> Result<()> {
         let e = self.folder(id)?;
+        ensure!(!value.trim().is_empty(), "A title cannot be empty");
         ensure!(value.len() <= 4096, "Title too long");
         self.edit(
             stack,
@@ -579,6 +702,7 @@ impl LibraryService {
     }
     pub fn rename_note(&self, id: EntityId, value: String, stack: u64) -> Result<()> {
         let e = self.note(id)?;
+        ensure!(!value.trim().is_empty(), "A title cannot be empty");
         ensure!(value.len() <= 4096, "Title too long");
         self.edit(
             stack,
@@ -707,6 +831,9 @@ impl LibraryService {
         let mut ids = n.blocks.clone();
         ids.retain(|v| *v != id);
         ids.insert(index.min(ids.len()), id);
+        if ids == n.blocks {
+            return Ok(());
+        }
         self.edit(
             stack,
             vec![Patch::NoteBlocks(note, n.blocks)],
@@ -747,12 +874,7 @@ impl LibraryService {
                 -1,
             )?)
         })?;
-        self.record(
-            stack,
-            vec![Patch::StrokeTrash(e.id, true)],
-            vec![Patch::StrokeTrash(e.id, false)],
-            "draw_stroke",
-        )?;
+        self.record_creation(stack, Kind::Stroke, e.id, "draw_stroke")?;
         Ok(e.id)
     }
     pub fn erase_strokes(&self, block: EntityId, ids: &[EntityId], stack: u64) -> Result<()> {
@@ -830,9 +952,18 @@ impl LibraryService {
         let others: Vec<f64> = self
             .blocks(note)?
             .iter()
-            .filter(|o| o.id != id)
+            .filter(|o| o.id != id && !o.trashed)
             .map(|o| o.z)
             .collect();
+        // Already above (or below) every other block: nothing to arrange.
+        let arranged = if front {
+            others.iter().all(|z| *z < b.z)
+        } else {
+            others.iter().all(|z| *z > b.z)
+        };
+        if arranged {
+            return Ok(());
+        }
         let z = if front {
             others.iter().copied().fold(b.z, f64::max) + 1.
         } else {
@@ -845,7 +976,7 @@ impl LibraryService {
             height: b.height,
             z: b.z,
         };
-        if others.is_empty() || old.z == z {
+        if old.z == z {
             return Ok(());
         }
         self.edit(
@@ -916,25 +1047,42 @@ impl LibraryService {
             }
             Ok(copy)
         })?;
-        self.record(
-            stack,
-            vec![Patch::BlockTrash(e.id, true)],
-            vec![Patch::BlockTrash(e.id, false)],
-            "duplicate_block",
-        )?;
+        self.record_creation(stack, Kind::Block, e.id, "duplicate_block")?;
         Ok(e.id)
     }
     pub fn set_alt_text(&self, id: EntityId, value: String, stack: u64) -> Result<()> {
+        let decorative = self.block(id)?.decorative;
+        self.describe_image(id, value, decorative, stack)
+    }
+    /// Set an image's alt text and whether it is decorative, in one undo step.
+    /// A decorative image is skipped by screen readers and exported with an
+    /// empty `alt`.
+    pub fn describe_image(
+        &self,
+        id: EntityId,
+        alt: String,
+        decorative: bool,
+        stack: u64,
+    ) -> Result<()> {
         let e = self.block(id)?;
         ensure!(e.kind == BlockKind::Image, "Not an image");
-        ensure!(value.len() <= 4096, "Description too long");
-        self.edit(
-            stack,
-            vec![Patch::AltText(id, e.alt_text)],
-            vec![Patch::AltText(id, value)],
-            "edit_alt_text",
-        )
+        ensure!(alt.len() <= 4096, "Description too long");
+        let (mut before, mut after) = (vec![], vec![]);
+        if e.alt_text != alt {
+            before.push(Patch::AltText(id, e.alt_text));
+            after.push(Patch::AltText(id, alt));
+        }
+        if e.decorative != decorative {
+            before.push(Patch::Decorative(id, e.decorative));
+            after.push(Patch::Decorative(id, decorative));
+        }
+        if after.is_empty() {
+            return Ok(());
+        }
+        self.edit(stack, before, after, "edit_alt_text")
     }
+    /// The library as it is saved: discarded entities are left out, and so are
+    /// assets no saved image uses.
     pub fn snapshot(&self, assets: Vec<format::Asset>) -> Result<format::Library> {
         let tx = Transaction::begin_frozen_read_transaction(&self.context.db_context)?;
         let l = repo::create_library_repository(&tx)?
@@ -944,9 +1092,13 @@ impl LibraryService {
             uid: l.uid,
             title: l.title,
             folders: vec![],
-            assets,
+            assets: vec![],
         };
+        let mut used = HashSet::new();
         for fid in l.folders {
+            if self.is_discarded(Kind::Folder, fid) {
+                continue;
+            }
             let f = repo::create_folder_repository(&tx)?
                 .get(&fid)?
                 .context("Missing folder")?;
@@ -957,6 +1109,9 @@ impl LibraryService {
                 notes: vec![],
             };
             for nid in f.notes {
+                if self.is_discarded(Kind::Note, nid) {
+                    continue;
+                }
                 let n = repo::create_note_repository(&tx)?
                     .get(&nid)?
                     .context("Missing note")?;
@@ -967,6 +1122,9 @@ impl LibraryService {
                     blocks: vec![],
                 };
                 for bid in n.blocks {
+                    if self.is_discarded(Kind::Block, bid) {
+                        continue;
+                    }
                     let b = repo::create_block_repository(&tx)?
                         .get(&bid)?
                         .context("Missing block")?;
@@ -979,6 +1137,7 @@ impl LibraryService {
                             let a = repo::create_asset_repository(&tx)?
                                 .get(&b.asset.context("Missing asset reference")?)?
                                 .context("Missing asset")?;
+                            used.insert(a.uid);
                             format::Content::Image {
                                 asset: a.uid,
                                 alt: b.alt_text,
@@ -988,6 +1147,9 @@ impl LibraryService {
                         BlockKind::Drawing => {
                             let mut strokes = vec![];
                             for sid in b.strokes {
+                                if self.is_discarded(Kind::Stroke, sid) {
+                                    continue;
+                                }
                                 let s = repo::create_ink_stroke_repository(&tx)?
                                     .get(&sid)?
                                     .context("Missing stroke")?;
@@ -1025,6 +1187,10 @@ impl LibraryService {
             }
             result.folders.push(folder);
         }
+        result.assets = assets
+            .into_iter()
+            .filter(|a| used.contains(&a.uid))
+            .collect();
         result.validate()?;
         Ok(result)
     }
@@ -1171,6 +1337,7 @@ impl LibraryService {
         Ok(Self {
             context,
             library_id,
+            discarded: Discarded::default(),
         })
     }
 }

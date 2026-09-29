@@ -30,8 +30,10 @@ pub enum DefaultView {
     Reading,
 }
 
+/// Unknown fields are ignored, not refused: a file written by a newer Noton
+/// must not stop an older one from starting.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Preferences {
     /// `None` follows the system language.
     pub locale: Option<String>,
@@ -83,21 +85,47 @@ fn path() -> anyhow::Result<std::path::PathBuf> {
         .config_dir()
         .join("preferences.json"))
 }
+/// Read the preferences. An interface language Noton does not ship falls back
+/// to the system's; only an unreadable file is an error.
 pub fn load() -> anyhow::Result<Preferences> {
     let path = path()?;
     if !path.exists() {
         return Ok(Preferences::default());
     }
-    let mut value: Preferences = serde_json::from_slice(&std::fs::read(path)?)?;
-    anyhow::ensure!(
-        value
-            .locale
-            .as_deref()
-            .is_none_or(|v| v == "en-US" || v == "fr-FR"),
-        "Unsupported interface locale"
-    );
+    parse(&std::fs::read(&path)?).map_err(|e| anyhow::anyhow!("{}: {e}", path.display()))
+}
+fn parse(json: &[u8]) -> serde_json::Result<Preferences> {
+    let mut value: Preferences = serde_json::from_slice(json)?;
+    if value
+        .locale
+        .as_deref()
+        .is_some_and(|v| v != "en-US" && v != "fr-FR")
+    {
+        log::warn!("Ignoring unsupported interface locale {:?}", value.locale);
+        value.locale = None;
+    }
     value.text_scale = value.text_scale.clamp(0.8, 2.);
     Ok(value)
+}
+/// [`load`], or the defaults when the file cannot be read: preferences never
+/// keep Noton from starting.
+pub fn load_or_default() -> Preferences {
+    load().unwrap_or_else(|e| {
+        log::warn!("Using default preferences: {e:#}");
+        Preferences::default()
+    })
+}
+/// Change the saved preferences and the view model's copy. An unreadable
+/// file is replaced by the preferences in use, changed.
+pub fn persist(
+    vm: &crate::session_vm::SessionVm,
+    f: impl FnOnce(&mut Preferences),
+) -> anyhow::Result<Preferences> {
+    let mut p = load().unwrap_or_else(|_| vm.0.prefs.borrow().clone());
+    f(&mut p);
+    save(&p)?;
+    *vm.0.prefs.borrow_mut() = p.clone();
+    Ok(p)
 }
 pub fn save(value: &Preferences) -> anyhow::Result<()> {
     let path = path()?;
@@ -113,7 +141,8 @@ pub fn save(value: &Preferences) -> anyhow::Result<()> {
     Ok(())
 }
 /// Rebuilds on `signal` and, after each change, runs `apply` with an event
-/// context: the only way a radio-tile choice can call `set_theme`.
+/// context: the only way a radio-tile choice can call `set_theme`, since
+/// `RadioTileGroup` (unlike `SegmentedControl`) has no change callback.
 type Apply<T> = Rc<dyn Fn(&T, &mut EventContext)>;
 struct ApplyOnChange<T: Clone + 'static> {
     signal: Signal<T>,
@@ -164,17 +193,8 @@ fn update(
     error: &Signal<String>,
     f: impl FnOnce(&mut Preferences),
 ) -> Option<Preferences> {
-    let result = (|| -> anyhow::Result<Preferences> {
-        let mut p = load()?;
-        f(&mut p);
-        save(&p)?;
-        Ok(p)
-    })();
-    match result {
-        Ok(p) => {
-            *vm.0.prefs.borrow_mut() = p.clone();
-            Some(p)
-        }
+    match persist(vm, f) {
+        Ok(p) => Some(p),
         Err(e) => {
             error.set(e.to_string());
             None
@@ -217,7 +237,7 @@ impl SettingsView {
 impl Widget for SettingsView {
     fn build(&mut self, ctx: &mut BuildContext) -> Vec<WidgetId> {
         let vm = self.vm.clone();
-        let prefs = load().unwrap_or_default();
+        let prefs = load_or_default();
         let error = Signal::new(String::new());
         // Language: System, English, Français.
         let language_index = match prefs.locale.as_deref() {
@@ -226,22 +246,23 @@ impl Widget for SettingsView {
             _ => 0,
         };
         let language_selected = Signal::new(language_index);
+        let languages =
+            [tr!(language_system()), lit!("English"), lit!("Français")].map(Segment::new);
+        let ids = languages.each_ref().map(|s| s.segment_id());
         let (v, e) = (vm.clone(), error.clone());
-        let language_apply = on_change(&language_selected, move |index, c| {
-            let locale = match index {
-                1 => Some("en-US".to_owned()),
-                2 => Some("fr-FR".to_owned()),
-                _ => None,
-            };
-            if update(&v, &e, |p| p.locale = locale.clone()).is_some() {
-                c.set_locale(locale.unwrap_or_else(system_locale));
-            }
-        });
-        let mut language =
-            SegmentedControl::indexed(language_selected.clone()).label(tr!(language()));
-        for option in [tr!(language_system()), lit!("English"), lit!("Français")] {
-            language = language.segment(Segment::new(option));
-        }
+        let language = SegmentedControl::indexed(language_selected)
+            .label(tr!(language()))
+            .segments(languages)
+            .on_change(move |id, c| {
+                let locale = match ids.iter().position(|s| *s == id) {
+                    Some(1) => Some("en-US".to_owned()),
+                    Some(2) => Some("fr-FR".to_owned()),
+                    _ => None,
+                };
+                if update(&v, &e, |p| p.locale = locale.clone()).is_some() {
+                    c.set_locale(locale.unwrap_or_else(system_locale));
+                }
+            });
         let language = ctx.add(language);
         self.initial_focus = Some(language);
         // Appearance: System, Light, Dark, as tiles.
@@ -303,18 +324,22 @@ impl Widget for SettingsView {
             Some(true) => 1,
             Some(false) => 2,
         });
+        let motions = [tr!(system()), tr!(on()), tr!(off())].map(Segment::new);
+        let ids = motions.each_ref().map(|s| s.segment_id());
         let (v, e) = (vm.clone(), error.clone());
-        let motion_apply = on_change(&motion, move |index, c| {
-            let value = [None, Some(true), Some(false)][(*index).min(2)];
-            if let Some(p) = update(&v, &e, |p| p.reduce_motion = value) {
-                c.set_theme(p.theme());
-            }
-        });
-        let mut motion_control =
-            SegmentedControl::indexed(motion.clone()).label(tr!(reduce_motion()));
-        for option in [tr!(system()), tr!(on()), tr!(off())] {
-            motion_control = motion_control.segment(Segment::new(option));
-        }
+        let motion_control = SegmentedControl::indexed(motion)
+            .label(tr!(reduce_motion()))
+            .segments(motions)
+            .on_change(move |id, c| {
+                let value = match ids.iter().position(|s| *s == id) {
+                    Some(1) => Some(true),
+                    Some(2) => Some(false),
+                    _ => None,
+                };
+                if let Some(p) = update(&v, &e, |p| p.reduce_motion = value) {
+                    c.set_theme(p.theme());
+                }
+            });
         // Default note view.
         let view = Signal::new(usize::from(prefs.default_view == DefaultView::Reading));
         let (v, e) = (vm.clone(), error.clone());
@@ -468,9 +493,7 @@ impl Widget for SettingsView {
                             )
                             .child(Divider::new())
                             .child(Expand::horizontal().child(footer))
-                            .child(language_apply)
-                            .child(appearance_apply)
-                            .child(motion_apply),
+                            .child(appearance_apply),
                     ),
                 ),
         );
@@ -510,5 +533,18 @@ impl Widget for SettingsView {
     }
     fn children(&self) -> Vec<WidgetId> {
         self.root.into_iter().collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_newer_or_foreign_preferences_file_still_loads() {
+        let p = parse(br#"{"locale":"de-DE","dark":true,"added_in_2027":{"x":1}}"#).unwrap();
+        assert_eq!(p.locale, None, "an unshipped language follows the system");
+        assert_eq!(p.appearance(), Appearance::Dark);
+        assert!(parse(b"{ not json").is_err());
     }
 }

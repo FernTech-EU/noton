@@ -172,10 +172,13 @@ impl Widget for InkSurface {
         }
         let sample = move |position: Point, pressure: Option<f32>| {
             let (w, h) = size.get();
+            // A stroke is saved only if every pressure is within 0–1, so a
+            // device reporting more (or NaN) must not cost the whole stroke.
+            let pressure = pressure.filter(|p| p.is_finite()).unwrap_or(1.);
             Sample {
                 x: position.x as f64 * 560. / w as f64,
                 y: position.y as f64 * 320. / h as f64,
-                pressure: pressure.unwrap_or(1.) as f64,
+                pressure: pressure.clamp(0., 1.) as f64,
             }
         };
         ctx.apply_self_handlers(

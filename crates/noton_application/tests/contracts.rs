@@ -1,5 +1,5 @@
 use common::entities::BlockKind;
-use noton_application::LibraryService;
+use noton_application::{Kind, LibraryService};
 use noton_format::{Geometry, LibraryFile, Sample, Stroke};
 use uuid::Uuid;
 
@@ -258,4 +258,111 @@ fn folders_and_notes_reorder_in_one_undo_step() {
     s.undo(stack).unwrap();
     assert_eq!(s.folders().unwrap()[0].id, a);
     s.snapshot(vec![]).unwrap();
+}
+#[test]
+fn undone_creations_leave_the_lists_the_trash_and_the_file() {
+    let s = LibraryService::new("Test".into()).unwrap();
+    let org = s.new_stack();
+    let page = s.new_stack();
+    let f = s.create_folder("F".into(), org).unwrap();
+    let n = s.create_note(f, "N".into(), org).unwrap();
+    let b = s
+        .create_block(n, BlockKind::RichText, "B".into(), page)
+        .unwrap();
+    s.undo(page).unwrap();
+    assert!(s.is_discarded(Kind::Block, b));
+    assert!(!s.is_discarded(Kind::Note, n), "ids repeat across kinds");
+    assert!(s.blocks(n).unwrap().is_empty());
+    assert!(
+        s.snapshot(vec![]).unwrap().folders[0].notes[0]
+            .blocks
+            .is_empty()
+    );
+    s.redo(page).unwrap();
+    assert_eq!(s.blocks(n).unwrap()[0].id, b);
+    let m = s.create_note(f, "Empty".into(), org).unwrap();
+    s.undo(org).unwrap();
+    assert_eq!(s.notes(f).unwrap().len(), 1, "not in the Trash either");
+    assert_eq!(s.snapshot(vec![]).unwrap().folders[0].notes.len(), 1);
+    s.redo(org).unwrap();
+    assert_eq!(s.notes(f).unwrap()[1].id, m);
+}
+#[test]
+fn an_undone_creation_that_gained_content_goes_to_the_trash() {
+    let s = LibraryService::new("Test".into()).unwrap();
+    let org = s.new_stack();
+    let page = s.new_stack();
+    let f = s.create_folder("F".into(), org).unwrap();
+    let n = s.create_note(f, "N".into(), org).unwrap();
+    let b = s
+        .create_block(n, BlockKind::RichText, "B".into(), page)
+        .unwrap();
+    // Typing is text history, not a step of the page stack.
+    s.flush_text(b, "Written since\n".into()).unwrap();
+    s.undo(page).unwrap();
+    assert!(!s.is_discarded(Kind::Block, b));
+    assert!(s.blocks(n).unwrap()[0].trashed, "restorable from the Trash");
+    s.redo(page).unwrap();
+    // The note holds a block (from another stack): undoing its creation
+    // trashes it with its content.
+    s.undo(org).unwrap();
+    assert!(s.notes(f).unwrap()[0].trashed);
+    let saved = s.snapshot(vec![]).unwrap();
+    assert!(saved.folders[0].notes[0].trashed);
+    assert_eq!(saved.folders[0].notes[0].blocks.len(), 1);
+}
+#[test]
+fn only_images_in_the_library_keep_their_asset_in_the_file() {
+    let s = LibraryService::new("Test".into()).unwrap();
+    let stack = s.new_stack();
+    let f = s.create_folder("F".into(), stack).unwrap();
+    let n = s.create_note(f, "N".into(), stack).unwrap();
+    let asset = noton_format::Asset::new("a.png".into(), "image/png".into(), vec![1, 2, 3]);
+    let b = s.insert_image(n, &asset, 100., 50., stack).unwrap();
+    assert_eq!(s.image_asset(b).unwrap(), asset.uid);
+    assert_eq!(s.snapshot(vec![asset.clone()]).unwrap().assets.len(), 1);
+    s.undo(stack).unwrap();
+    assert!(s.snapshot(vec![asset.clone()]).unwrap().assets.is_empty());
+    s.redo(stack).unwrap();
+    s.trash_block(b, true, stack).unwrap();
+    assert_eq!(
+        s.snapshot(vec![asset]).unwrap().assets.len(),
+        1,
+        "a trashed image can still be restored"
+    );
+}
+#[test]
+fn commands_that_change_nothing_add_no_undo_step() {
+    let s = LibraryService::new("Test".into()).unwrap();
+    let stack = s.new_stack();
+    let f = s.create_folder("F".into(), stack).unwrap();
+    let n = s.create_note(f, "N".into(), stack).unwrap();
+    let a = s
+        .create_block(n, BlockKind::RichText, "A".into(), stack)
+        .unwrap();
+    let b = s
+        .create_block(n, BlockKind::RichText, "B".into(), stack)
+        .unwrap();
+    let head = s.head(stack);
+    s.arrange_block(b, true, stack).unwrap();
+    s.arrange_block(a, false, stack).unwrap();
+    s.reorder_block(n, a, 0, stack).unwrap();
+    assert_eq!(s.head(stack), head);
+    assert!(s.rename_note(n, "  ".into(), stack).is_err());
+    assert!(s.rename_folder(f, String::new(), stack).is_err());
+}
+#[test]
+fn alt_text_and_decorative_are_one_undo_step() {
+    let s = LibraryService::new("Test".into()).unwrap();
+    let stack = s.new_stack();
+    let f = s.create_folder("F".into(), stack).unwrap();
+    let n = s.create_note(f, "N".into(), stack).unwrap();
+    let asset = noton_format::Asset::new("a.png".into(), "image/png".into(), vec![1, 2, 3]);
+    let b = s.insert_image(n, &asset, 100., 50., stack).unwrap();
+    s.describe_image(b, "Rule".into(), true, stack).unwrap();
+    let e = s.block(b).unwrap();
+    assert_eq!((e.alt_text.as_str(), e.decorative), ("Rule", true));
+    s.undo(stack).unwrap();
+    let e = s.block(b).unwrap();
+    assert_eq!((e.alt_text.as_str(), e.decorative), ("a.png", false));
 }

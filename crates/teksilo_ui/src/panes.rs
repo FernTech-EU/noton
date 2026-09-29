@@ -3,6 +3,7 @@
 use crate::{
     icons::Icon,
     session_vm::{Row, SessionVm},
+    status::offer_undo,
     theme::PANEL_PADDING,
     widgets::{AutoFocus, caption, icon_button},
 };
@@ -71,17 +72,20 @@ fn folder_menu(vm: &SessionVm, id: EntityId) -> MenuList {
                 .on_activate_fn(move |_| rename.report(rename.start_folder_rename(id))),
         )
         .separator()
-        .item(if trashed {
-            MenuItem::new(tr!(restore_folder()))
-                .icon(Icon::Restore.widget())
-                .on_activate_fn(move |_| trash.report(trash.trash_folder(id)))
-        } else {
-            MenuItem::new(tr!(move_to_trash()))
-                .icon(Icon::Trash.widget())
-                .text_role(TextRole::Error)
-                .shortcut_label("Del")
-                .on_activate_fn(move |_| trash.report(trash.trash_folder(id)))
-        })
+        .item(
+            if trashed {
+                MenuItem::new(tr!(restore_folder())).icon(Icon::Restore.widget())
+            } else {
+                MenuItem::new(tr!(move_to_trash()))
+                    .icon(Icon::Trash.widget())
+                    .text_role(TextRole::Error)
+                    .shortcut_label("Del")
+            }
+            .on_activate_fn(move |ctx| {
+                trash.report(trash.trash_folder(id));
+                offer_undo(&trash, ctx);
+            }),
+        )
 }
 
 pub fn folders_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl Widget + 'static {
@@ -138,7 +142,7 @@ pub fn folders_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl
     })
     .type_ahead_label(|r| r.title.clone());
     let keys = vm.clone();
-    let list = list.on_key(move |event, _| {
+    let list = list.on_key(move |event, ctx| {
         let Some(id) = keys.0.folder.get() else {
             return EventResponse::Ignored;
         };
@@ -149,6 +153,7 @@ pub fn folders_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl
             }
             Some((Key::Delete, _)) => {
                 keys.report(keys.trash_folder(id));
+                offer_undo(&keys, ctx);
                 EventResponse::Handled
             }
             _ => EventResponse::Ignored,
@@ -244,17 +249,20 @@ pub fn note_menu(vm: &SessionVm, id: EntityId) -> MenuList {
             .enabled(!trashed && !vm.other_folders(id).is_empty()),
         )
         .separator()
-        .item(if trashed {
-            MenuItem::new(tr!(restore_note()))
-                .icon(Icon::Restore.widget())
-                .on_activate_fn(move |_| trash.report(trash.trash_note(id)))
-        } else {
-            MenuItem::new(tr!(move_to_trash()))
-                .icon(Icon::Trash.widget())
-                .text_role(TextRole::Error)
-                .shortcut_label("Del")
-                .on_activate_fn(move |_| trash.report(trash.trash_note(id)))
-        })
+        .item(
+            if trashed {
+                MenuItem::new(tr!(restore_note())).icon(Icon::Restore.widget())
+            } else {
+                MenuItem::new(tr!(move_to_trash()))
+                    .icon(Icon::Trash.widget())
+                    .text_role(TextRole::Error)
+                    .shortcut_label("Del")
+            }
+            .on_activate_fn(move |ctx| {
+                trash.report(trash.trash_note(id));
+                offer_undo(&trash, ctx);
+            }),
+        )
 }
 
 pub fn notes_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl Widget + 'static {
@@ -305,7 +313,7 @@ pub fn notes_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl W
     })
     .type_ahead_label(|r| r.title.clone());
     let keys = vm.clone();
-    let list = list.on_key(move |event, _| {
+    let list = list.on_key(move |event, ctx| {
         let Some(id) = keys.0.note.get() else {
             return EventResponse::Ignored;
         };
@@ -316,6 +324,7 @@ pub fn notes_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl W
             }
             Some((Key::Delete, _)) => {
                 keys.report(keys.trash_note(id));
+                offer_undo(&keys, ctx);
                 EventResponse::Handled
             }
             _ => EventResponse::Ignored,

@@ -251,7 +251,9 @@ def stroke(c, path):
     assert len(records(path, 'block')[0]['content']['strokes']) == 1
     menu(c, 'Edit', 'Undo draw stroke on this page')
     save(c)
-    assert records(path, 'block')[0]['content']['strokes'][0]['trashed']
+    # An undone stroke was never kept: it leaves the file, rather than
+    # staying in it as trashed.
+    assert records(path, 'block')[0]['content']['strokes'] == []
     menu(c, 'Edit', 'Redo draw stroke on this page')
     save(c)
     assert not records(path, 'block')[0]['content']['strokes'][0]['trashed']
