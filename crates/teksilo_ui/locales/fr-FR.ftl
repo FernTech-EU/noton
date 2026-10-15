@@ -217,3 +217,10 @@ note-title = Titre de la note
 undo-hint-field = annule la saisie
 undo-reorder-folders = ordre des dossiers
 undo-reorder-notes = ordre des notes
+
+start-note = Commencer une note
+start-writing = Commencer à écrire
+navigation-toggle = Navigation
+navigation-toggle-help = Afficher ou masquer la navigation (Ctrl Maj \)
+search-matches = { $count } résultats
+search-empty = Aucune note correspondante. Essayez une autre recherche.

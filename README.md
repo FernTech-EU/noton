@@ -3,14 +3,19 @@
 A lightweight notes app built with Teksilo, teksilo-scene and Qleany.
 Implementation is in progress.
 
-Build with pinned dependencies:
+Build with crates.io releases pinned by Cargo.lock:
 
 ```sh
-python3 tools/bootstrap.py
 cargo build --locked
 cargo run --locked
 ```
 
-For the sibling development checkouts, dependency API compatibility and test results,
+Choose **Start a note** or press Ctrl+N to begin typing immediately. An empty note
+offers **Start writing**; double-click blank canvas space to add text there.
+**Navigation** (Ctrl+Shift+\\) shows or hides the side panes. Search shows matching
+excerpts and occurrence counts; activating a result selects its first matching
+text, and clearing the query restores the previous note and view.
+
+For dependency versions and test results,
 see [Teksilo integration](docs/teksilo-integration.md).
 See the [architecture dossier](docs/README.md) for the design and acceptance criteria.

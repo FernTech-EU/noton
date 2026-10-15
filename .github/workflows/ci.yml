@@ -34,8 +34,6 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.x'
-      - name: Resolve pinned source dependencies
-        run: python tools/bootstrap.py
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.os }}

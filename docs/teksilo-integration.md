@@ -1,57 +1,52 @@
 # Teksilo dependency integration
 
-Noton's source and development executable live in `/home/cyril/Devel/noton`.
+Noton builds from published crates.io releases. No sibling repositories, Git
+checkouts, or `[patch.crates-io]` source overrides are needed.
 
-## Local framework development
+The current baseline is Teksilo and teksilo-scene **0.18.0**, text-document
+**1.13.0**, and the transitive text-typeset **2.0.0** dependency. `Cargo.lock`
+pins the resolved registry versions and checksums. `text-typeset` supplies the
+text layout used by Teksilo; it is not a direct Noton dependency.
 
-Teksilo's new rich-text accessibility walk uses `TableVisualInfo`,
-`DocumentFlow::table_visual_info` and `DocumentFlow::block_geometry` from
-`text-typeset`. Overriding Teksilo alone is insufficient: Cargo does not inherit a
-dependency's `.cargo/config.toml`. Noton's workspace must override the typesetter too.
-
-From the Noton root:
+## Build and verification
 
 ```sh
-python3 tools/bootstrap.py --teksilo ../teksilo --text-document ../text-document --text-typeset ../text-typeset
-cargo build --locked
+cargo build --workspace --all-targets --locked
+cargo test --workspace --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test -p noton-teksilo-ui --features mocks --locked
+cargo clippy -p noton-teksilo-ui --features mocks --all-targets --locked -- -D warnings
+# Restore the production binary after mock checks.
+cargo build -p noton-teksilo-ui --locked
+python3 tools/check_locales.py
 python3 tools/mcp_smoke.py target/debug/noton
+python3 tools/mcp_stories.py target/debug/noton target/user-story-results
 python3 tools/mcp_table_accessibility.py target/debug/noton
 ```
 
-The bootstrap command refuses to overwrite a different existing
-`.cargo/config.toml`; preserve that file before selecting different sources.
-Explicit local paths use the working copies, including their uncommitted changes.
-No upstream files are modified by this integration.
+CI uses the same registry dependencies and lockfile. The former source bootstrap
+script and Git revision manifest have been removed. Existing development
+checkouts must remove any old `.cargo/config.toml` source overrides before building
+against these releases.
 
-## Reproducible builds
+For native automation, install a client matching the framework and use fresh
+output directories:
 
-`python3 tools/bootstrap.py` checks out the committed revisions in
-`tools/dependencies.json` under `.dependencies/`. All three source dependencies
-are pinned, and `Cargo.lock` resolves `text-typeset` through the same source override
-in both local development and CI.
+```sh
+cargo install teksilo-automation-mcp --version 0.18.0 --locked --root target/automation
+PATH="$PWD/target/automation/bin:$PATH" python3 tools/mcp_ergonomics.py target/debug/noton /tmp/noton-ergonomics-new
+PATH="$PWD/target/automation/bin:$PATH" python3 tools/mcp_visual_audit.py target/debug/noton /tmp/noton-visual-audit-new
+PATH="$PWD/target/automation/bin:$PATH" python3 tools/check_native_scheduling.py target/debug/noton /tmp/noton-native-scheduling-new
+```
 
-At this update, the new table accessibility implementation is still uncommitted
-in the sibling Teksilo and text-typeset repositories. The committed pins therefore
-do **not** contain that fix. The separate table accessibility probe intentionally
-fails against those older implementations; it is an acceptance check for the new
-upstream work, not part of the pinned baseline CI until that work has a committed
-revision to pin. The ordinary MCP smoke test runs in CI.
-
-Even a passing table probe does not certify native Orca, NVDA or VoiceOver behavior.
-It verifies structure and cell text in Noton's actual canvas and reading projections,
-including save/reopen. Native assistive-technology validation remains necessary.
+Native scripts require a desktop session and drive only the processes they launch.
+The ergonomics suite verifies initial keyboard focus, direct writing, navigation
+and match selection through the native event loop. Teksilo 0.18.0 headless MCP
+does not drain mount callbacks, so it cannot validate initial-focus behavior.
+A passing table probe does not certify native Orca, NVDA or VoiceOver behavior.
 
 ## Verification results
 
-See [the current user-story and visual audit](ui-audit.md) for the latest tests,
-screenshots and remaining failures. The initial API update passed 142 workspace
-tests and strict Clippy. The subsequent audit added regressions (144 tests) and
-16 MCP scenario checks, plus native screenshots and Settings-modal checks.
-
-The table probe now gets through canvas and reading-view checks but fails on the
-first headless snapshot after reopening. Native reopen screenshots and MCP trees
-show all nine cell bounds in both views. This discrepancy remains open and does
-not substitute for native assistive-technology testing.
-
-The framework working copies were read, never modified. Their uncommitted changes
-are not part of Noton's committed dependency pins.
+See [the October update and project review](review-2026-10-15.md) for results and
+open findings, including the registry verification follow-up. The
+[September user-story and visual audit](ui-audit.md) is historical coverage.

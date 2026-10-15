@@ -10,6 +10,7 @@ pub mod models;
 pub mod note_view;
 pub mod page;
 pub mod panes;
+pub mod search;
 pub mod session_vm;
 pub mod settings;
 pub mod singles;

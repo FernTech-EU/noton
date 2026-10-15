@@ -59,6 +59,37 @@ impl PageView {
     }
 }
 
+/// Attach the blank-canvas gesture to the scene itself, inside its scroll bars.
+#[derive(Debug)]
+struct WritingCanvas {
+    scroll: teksilo_scene::SceneScrollView,
+    handlers: Option<teksilo::core::widget_builder::HandlerSet>,
+}
+impl Widget for WritingCanvas {
+    fn build(&mut self, ctx: &mut BuildContext) -> Vec<WidgetId> {
+        let children = self.scroll.build(ctx);
+        if let (Some(scene), Some(handlers)) = (children.first(), self.handlers.take()) {
+            ctx.apply_handlers(*scene, handlers);
+        }
+        children
+    }
+    fn layout_response(&self, p: SizeProposal, ctx: &LayoutContext) -> LayoutResponse {
+        self.scroll.layout_response(p, ctx)
+    }
+    fn place_children(
+        &self,
+        bounds: Rect,
+        p: SizeProposal,
+        children: &mut [teksilo::core::widget::WidgetPlacement],
+        ctx: &LayoutContext,
+    ) {
+        self.scroll.place_children(bounds, p, children, ctx);
+    }
+    fn children(&self) -> Vec<WidgetId> {
+        self.scroll.children()
+    }
+}
+
 fn kind_icon(kind: &BlockKind) -> Icon {
     match kind {
         BlockKind::RichText => Icon::Text,
@@ -154,8 +185,72 @@ fn text_editor(
         let (a, p) = old.selection();
         handle.select_range(a, p);
     }
-    vm.0.handles.borrow_mut().insert(id, handle);
-    Ok(Box::new(editor))
+    vm.0.handles.borrow_mut().insert(id, handle.clone());
+    Ok(Box::new(FocusEditor {
+        vm: vm.clone(),
+        id,
+        content: Some(Box::new(editor)),
+        mode,
+        handle: Some(handle),
+        root: None,
+    }))
+}
+
+#[derive(Debug)]
+struct FocusEditor {
+    vm: SessionVm,
+    id: EntityId,
+    content: Option<Box<dyn Widget>>,
+    mode: Signal<CardMode>,
+    handle: Option<teksilo::widgets::rich_text::EditorHandle>,
+    root: Option<WidgetId>,
+}
+impl Widget for FocusEditor {
+    fn build(&mut self, ctx: &mut BuildContext) -> Vec<WidgetId> {
+        if let Some(content) = self.content.take() {
+            let root = ctx.add_boxed(content);
+            self.root = Some(root);
+            let (vm, id, handle) = (self.vm.clone(), self.id, self.handle.clone());
+            let mode = self.mode.clone();
+            ctx.run_after_mount(move |ec| {
+                if let Some((target, range)) = vm.0.focus_block.get() {
+                    if target == id {
+                        vm.0.focus_block.set(None);
+                        if let Some(handle) = handle {
+                            mode.set(CardMode::Editing);
+                            handle.focus(ec);
+                            if let Some((start, end)) = range {
+                                handle.select_range(start, end);
+                                if !handle.reveal_range(ec, start, end) {
+                                    handle.reveal_widget(ec);
+                                }
+                            } else {
+                                handle.reveal_widget(ec);
+                            }
+                        } else {
+                            ec.ensure_widget_visible(root);
+                        }
+                    }
+                }
+            });
+        }
+        self.root.into_iter().collect()
+    }
+    fn layout_response(&self, p: SizeProposal, c: &LayoutContext) -> LayoutResponse {
+        self.root
+            .and_then(|id| c.child_size(id, p))
+            .unwrap_or_else(|| p.resolve(0., 0.))
+            .into()
+    }
+    fn children(&self) -> Vec<WidgetId> {
+        self.root.into_iter().collect()
+    }
+}
+fn start_writing_button(vm: &SessionVm) -> impl Widget + 'static {
+    let v = vm.clone();
+    Button::new(tr!(start_writing()))
+        .variant(ButtonVariant::Filled)
+        .on_activate_fn(move |_| v.report(v.start_writing()))
 }
 
 fn image(vm: &SessionVm, b: &Block) -> anyhow::Result<Box<dyn Widget>> {
@@ -255,11 +350,22 @@ fn sketch(vm: &SessionVm, b: &Block) -> anyhow::Result<Box<dyn Widget>> {
 }
 
 fn body(vm: &SessionVm, b: &Block, mode: Signal<CardMode>) -> anyhow::Result<Box<dyn Widget>> {
-    match b.kind {
-        BlockKind::RichText => text_editor(vm, b.id, mode),
-        BlockKind::Drawing => sketch(vm, b),
-        BlockKind::Image => image(vm, b),
+    if b.kind == BlockKind::RichText {
+        return text_editor(vm, b.id, mode);
     }
+    let content = match b.kind {
+        BlockKind::Drawing => sketch(vm, b)?,
+        BlockKind::Image => image(vm, b)?,
+        BlockKind::RichText => unreachable!(),
+    };
+    Ok(Box::new(FocusEditor {
+        vm: vm.clone(),
+        id: b.id,
+        content: Some(content),
+        mode,
+        handle: None,
+        root: None,
+    }))
 }
 
 /// What a block menu item does.
@@ -451,13 +557,16 @@ fn card_header(vm: &SessionVm, b: &Block) -> impl Widget + 'static {
         HStack::new()
             .spacing(6.)
             .alignment(VAlignment::Center)
-            .child(kind_icon(&b.kind).sized(14.).color(TextRole::Secondary))
-            .child(Expand::horizontal().child(label))
             .child(
-                Badge::new(tr!(editing()))
-                    .background(SurfaceRole::AccentSubtle)
-                    .text_role(TextRole::Accent)
-                    .visible_when(editing),
+                kind_icon(&b.kind)
+                    .sized(14.)
+                    .color(TextRole::Secondary)
+                    .visible_when(editing.map(|e| !e)),
+            )
+            .child(
+                Expand::horizontal()
+                    .child(label)
+                    .visible_when(editing.map(|e| !e)),
             )
             .child(
                 Badge::new(tr!(draw()))
@@ -740,10 +849,11 @@ fn canvas(
         }
     });
     let v = vm.clone();
-    let view = SceneView::with_model(model)
+    let view = SceneView::with_model(model.clone())
         .selection_model(selection)
         .transform_controller(
             TransformConfig::new()
+                .enabled(vm.0.editing.map(|e| e.is_none()))
                 .handles(TransformHandleSet::MOVE | TransformHandleSet::ALL_RESIZE)
                 .padding(4.)
                 .handle_px(8.)
@@ -771,22 +881,50 @@ fn canvas(
         viewport: view.viewport_size_signal(),
     };
     vm.attach_camera(camera.clone());
+    if let Some((id, _)) = vm.0.focus_block.get() {
+        if let Ok(b) = vm.0.service.block(id) {
+            camera.pan_x.set(24. - b.x as f32 * camera.zoom.get());
+            camera.pan_y.set(24. - b.y as f32 * camera.zoom.get());
+            vm.0.fit_pending.set(None);
+        }
+    }
+
     let v = vm.clone();
     ctx.effect(&camera.zoom, move |z| {
         v.0.zoom.set_if_changed(*z);
     });
     let keys = vm.clone();
+    let transform = view.view_transform_signal();
+    let write = vm.clone();
+    let cam = camera.clone();
+    let handlers =
+        teksilo::core::widget_builder::HandlerSet::new().on_double_tap(move |event, _| {
+            if model
+                .item_at_in_view(event.position, transform.get())
+                .is_none()
+                && !write.0.note_trashed.get()
+            {
+                let zoom = cam.zoom.get().max(0.01);
+                write.report(write.write_at(
+                    ((event.position.x - cam.pan_x.get()) / zoom) as f64,
+                    ((event.position.y - cam.pan_y.get()) / zoom) as f64,
+                ));
+            }
+        });
+    let view = WritingCanvas {
+        scroll: view.with_scroll_bars(),
+        handlers: Some(handlers),
+    };
     let empty = blocks.is_empty();
-    let view = view
-        .with_scroll_bars()
-        .on_key_preview(move |event, ctx| canvas_keys(&keys, event, ctx));
+    let view = view.on_key_preview(move |event, ctx| canvas_keys(&keys, event, ctx));
     if empty {
         return Ok(Box::new(
             ZStack::new().child(view).child(
                 Padding::uniform(32.).child(
                     VStack::new()
                         .alignment(HAlignment::Center)
-                        .child(caption(tr!(empty_note()))),
+                        .child(caption(tr!(empty_note())))
+                        .child(start_writing_button(vm)),
                 ),
             ),
         ));
@@ -807,7 +945,9 @@ fn reading(vm: &SessionVm, note: EntityId) -> anyhow::Result<Box<dyn Widget>> {
     let count = blocks.iter().filter(|b| !b.trashed).count();
     let mut list = VStack::new().spacing(16.);
     if blocks.is_empty() {
-        list = list.child(caption(tr!(empty_note())));
+        list = list
+            .child(caption(tr!(empty_note())))
+            .child(start_writing_button(vm));
     }
     // Reading order counts only the blocks a reader sees; one in the trash
     // (shown while the trash is) has no position.

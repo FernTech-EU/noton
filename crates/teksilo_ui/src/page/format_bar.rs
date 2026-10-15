@@ -1,12 +1,7 @@
 //! The formatting toolbar. It shows only while a text block is being edited,
 //! its toggles reflect the formatting at the caret, and what does not fit
 //! overflows into the toolbar's own ⌄ menu.
-use crate::{
-    icons::Icon,
-    session_vm::SessionVm,
-    widgets::{caption, kbd},
-};
-use teksilo::tokens::VAlignment;
+use crate::{icons::Icon, session_vm::SessionVm};
 use teksilo::widgets::rich_text::EditorHandle;
 use teksilo::{prelude::*, widgets::*};
 use text_document::Alignment;
@@ -194,11 +189,6 @@ pub fn format_bar(vm: &SessionVm) -> impl Widget + 'static {
                         .text_role(TextRole::Error),
                 )
         });
-    let hint = HStack::new()
-        .spacing(6.)
-        .alignment(VAlignment::Center)
-        .child(kbd("Esc"))
-        .child(caption(tr!(finish_editing())));
     let escape = vm.clone();
     Padding::new(6., 12., 6., 16.)
         .child(
@@ -249,10 +239,9 @@ pub fn format_bar(vm: &SessionVm) -> impl Widget + 'static {
                 .item(ToolbarItem::custom(link(vm)))
                 .action(alignment.priority(2))
                 .action(table.priority(3))
-                .item(ToolbarItem::flexible_space())
-                .item(ToolbarItem::custom(hint)),
+                .item(ToolbarItem::flexible_space()),
         )
-        // Esc on the toolbar finishes editing too, as its hint says.
+        // Esc on the toolbar finishes editing too.
         .on_key(move |event, _| match event {
             WidgetEvent::KeyDown {
                 key: Key::Escape, ..

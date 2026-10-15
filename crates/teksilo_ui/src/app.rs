@@ -190,9 +190,24 @@ pub fn menu() -> MenuModel {
 
 /// The title bar's contents: app mark, library name and the search field.
 pub fn title_parts(vm: &SessionVm, tree: &mut teksilo::core::WidgetTree) -> (WidgetId, WidgetId) {
+    let cancel_search = vm.clone();
     let search = SearchField::new(vm.0.query.clone())
         .placeholder(tr!(search_library()))
-        .label(tr!(search_library()));
+        .label(tr!(search_library()))
+        .on_key(move |event, _| {
+            if matches!(
+                event,
+                WidgetEvent::KeyDown {
+                    key: Key::Escape,
+                    ..
+                }
+            ) {
+                cancel_search.0.query.set(String::new());
+                EventResponse::Handled
+            } else {
+                EventResponse::Ignored
+            }
+        });
     let search = tree.add(FixedSize::new().width(340.).child(search));
     vm.0.search_field.set(Some(search));
     let mark = tree.add(
@@ -200,16 +215,32 @@ pub fn title_parts(vm: &SessionVm, tree: &mut teksilo::core::WidgetTree) -> (Wid
             .spacing(8.)
             .alignment(VAlignment::Center)
             .child(
+                Button::new(tr!(navigation_toggle()))
+                    .variant(ButtonVariant::Plain)
+                    .icon(Icon::List.widget(), IconLocation::Leading)
+                    .tooltip(tr!(navigation_toggle_help()))
+                    .on_activate_fn(|ctx| ctx.send_intent(Intent::new("view.navigation"))),
+            )
+            .child(
                 IconWidget::from_svg(include_str!("../resources/mark.svg"))
                     .icon_size(18.)
                     .mode(IconMode::FullColor),
             )
-            .child(TextWidget::new(lit!("Noton")).style(TextStyleRole::BodyBold))
-            .child(TextWidget::new(lit!("/")).color(TextRole::Disabled))
+            .child(
+                TextWidget::new(lit!("Noton"))
+                    .style(TextStyleRole::BodyBold)
+                    .visible_when(vm.0.narrow.map(|n| !n)),
+            )
+            .child(
+                TextWidget::new(lit!("/"))
+                    .color(TextRole::Disabled)
+                    .visible_when(vm.0.narrow.map(|n| !n)),
+            )
             .child(
                 TextWidget::new(lit!(vm.library_name()))
                     .color(TextRole::Secondary)
-                    .single_line(),
+                    .single_line()
+                    .visible_when(vm.0.narrow.map(|n| !n)),
             ),
     );
     (mark, search)
@@ -266,6 +297,8 @@ fn shortcut(ctx: &mut BuildContext, intent: &'static str, stroke: KeyStroke) {
 
 fn register_actions(vm: &SessionVm, ctx: &mut BuildContext) {
     for intent in [
+        "note.start",
+        "view.navigation",
         "file.save",
         "file.backup",
         "folder.new",
@@ -290,6 +323,21 @@ fn register_actions(vm: &SessionVm, ctx: &mut BuildContext) {
         let v = vm.clone();
         ctx.register_action_global(Action::new(intent).on_invoke(move |_, _| {
             let result = match intent {
+                "note.start" => v.start_note(),
+                "view.navigation" => {
+                    if v.0.narrow.get() {
+                        v.0.navigation.set(if v.0.navigation.get() == 2 {
+                            1
+                        } else if v.0.note.get().is_some() {
+                            2
+                        } else {
+                            0
+                        });
+                    } else {
+                        v.0.navigation_visible.set(!v.0.navigation_visible.get());
+                    }
+                    Ok(())
+                }
                 "file.save" => v.save(),
                 "file.backup" => v.backup(),
                 "folder.new" => v.new_folder().and_then(|_| match v.0.folder.get() {
@@ -454,7 +502,12 @@ fn register_actions(vm: &SessionVm, ctx: &mut BuildContext) {
     shortcut(ctx, "text.undo", KeyStroke::command(Key::Z));
     shortcut(ctx, "text.redo", KeyStroke::command_shift(Key::Z));
     shortcut(ctx, "file.save", KeyStroke::command(Key::S));
-    shortcut(ctx, "note.new", KeyStroke::command(Key::N));
+    shortcut(ctx, "note.start", KeyStroke::command(Key::N));
+    shortcut(
+        ctx,
+        "view.navigation",
+        KeyStroke::command_shift(Key::Character('\\')),
+    );
     shortcut(ctx, "folder.new", KeyStroke::command_shift(Key::N));
     shortcut(ctx, "search.focus", KeyStroke::command_shift(Key::F));
     shortcut(ctx, "view.canvas", KeyStroke::command(Key::Character('1')));
@@ -542,7 +595,7 @@ impl Widget for AppRoot {
         }
         vm.wire_coordinator(ctx);
         let v = vm.clone();
-        ctx.effect(&vm.0.query, move |_| v.report(v.refresh()));
+        ctx.effect(&vm.0.query, move |_| v.report(v.search_changed()));
         // Named undo: rebuild the Edit menu when what it would undo changes.
         let (menu, locale) = (self.menu.clone(), ctx.locale_signal());
         let rebuild = move |info: &UndoInfo| {
@@ -586,7 +639,7 @@ impl Widget for AppRoot {
         let v = vm.clone();
         ctx.effect(&self.note_selection.selection_signal(), move |keys| {
             if let Some(id) = keys.iter().next().copied() {
-                if v.0.note.get() != Some(id) {
+                if v.0.query.get().trim().is_empty() && v.0.note.get() != Some(id) {
                     v.report(v.select_note(Some(id)));
                 }
             }
@@ -614,6 +667,7 @@ impl Widget for AppRoot {
         let status = ctx.add(crate::status::status_bar(&vm));
         let cycle = std::cell::Cell::new(0usize);
         let order = [regions[0], regions[1], regions[2], status];
+        let focus_vm = vm.clone();
         ctx.apply_self_handlers(
             teksilo::core::widget_builder::HandlerSet::new().on_key_preview(move |event, ec| {
                 if let WidgetEvent::KeyDown {
@@ -628,6 +682,23 @@ impl Widget for AppRoot {
                     } else {
                         (cycle.get() + 1) % n
                     };
+                    let mut next = next;
+                    for _ in 0..n {
+                        let visible = next == 3
+                            || if focus_vm.0.narrow.get() {
+                                next == focus_vm.0.navigation.get()
+                            } else {
+                                next == 2 || focus_vm.0.navigation_visible.get()
+                            };
+                        if visible {
+                            break;
+                        }
+                        next = if modifiers.shift() {
+                            (next + n - 1) % n
+                        } else {
+                            (next + 1) % n
+                        };
+                    }
                     cycle.set(next);
                     ec.request_focus_into(order[next]);
                     EventResponse::Handled
@@ -641,11 +712,20 @@ impl Widget for AppRoot {
             let size = window.size().clone();
             let navigation = vm.0.navigation.clone();
             let (split, narrow) = (self.split.clone(), vm.0.narrow.clone());
+            let shown = vm.0.navigation_visible.clone();
+            let show = shown.clone();
             let update = move |width: u32, stage: usize| {
                 let is_narrow = width < 760;
                 narrow.set_if_changed(is_narrow);
                 for i in 0..3 {
-                    split.set_pane_visible(i, !is_narrow || i == stage);
+                    split.set_pane_visible(
+                        i,
+                        if is_narrow {
+                            i == stage
+                        } else {
+                            i == 2 || show.get()
+                        },
+                    );
                 }
             };
             update(size.get().0, navigation.get());
@@ -653,6 +733,8 @@ impl Widget for AppRoot {
             let a = apply.clone();
             let nav = navigation.clone();
             ctx.effect(&size, move |size| a(size.0, nav.get()));
+            let (a, size2, nav2) = (apply.clone(), size.clone(), navigation.clone());
+            ctx.effect(&shown, move |_| a(size2.get().0, nav2.get()));
             ctx.effect(&navigation, move |stage| apply(size.get().0, *stage));
         }
         let content = Splitter::new(self.split.clone())

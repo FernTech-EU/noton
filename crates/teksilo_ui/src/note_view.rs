@@ -304,7 +304,13 @@ pub fn note_view(vm: &SessionVm, ctx: &mut BuildContext) -> impl Widget + 'stati
             .spacing(8.)
             .alignment(HAlignment::Center)
             .child(Icon::Note.sized(32.).color(TextRole::Secondary))
-            .child(caption(tr!(empty()))),
+            .child(caption(tr!(empty())))
+            .child(
+                Button::new(tr!(start_note()))
+                    .variant(ButtonVariant::Filled)
+                    .icon(Icon::Plus.widget(), IconLocation::Leading)
+                    .on_activate_fn(|ctx| ctx.send_intent(Intent::new("note.start"))),
+            ),
     );
     crate::widgets::fill(SurfaceRole::Content).child(
         ZStack::new()

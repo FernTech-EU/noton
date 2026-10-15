@@ -201,7 +201,13 @@ pub fn folders_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl
             .child(pane_header(tr!(folders()), new_folder))
             .child(Expand::new().child(list))
             .child(Padding::symmetric(6., 4.).child(Divider::horizontal()))
-            .child(trash),
+            .child(trash)
+            .child(
+                Button::new(tr!(start_note()))
+                    .variant(ButtonVariant::Filled)
+                    .on_activate_fn(|ctx| ctx.send_intent(Intent::new("note.start")))
+                    .visible_when(vm.0.narrow.clone()),
+            ),
     )
 }
 
@@ -266,6 +272,7 @@ pub fn note_menu(vm: &SessionVm, id: EntityId) -> MenuList {
 }
 
 pub fn notes_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl Widget + 'static {
+    let key_selection = selection.clone();
     let v = vm.clone();
     let delegate_vm = vm.clone();
     let drop_vm = vm.clone();
@@ -284,9 +291,11 @@ pub fn notes_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl W
             let vm = delegate_vm.clone();
             let id = row.id;
             let mut item = StandardListItem::new(lit!(row.title.clone()))
-                .trailing_slot(caption(lit!(row.meta.clone())))
                 .label_overflow(TextOverflow::Ellipsis(EllipsisMode::Trailing))
                 .selected(selected);
+            if row.hit.is_none() {
+                item = item.trailing_slot(caption(lit!(row.meta.clone())));
+            }
             if selected {
                 item = item.label_style(TextStyleRole::BodyBold);
             }
@@ -294,6 +303,46 @@ pub fn notes_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl W
                 item = item
                     .subtitle(lit!(row.subtitle.clone()))
                     .subtitle_overflow(TextOverflow::Ellipsis(EllipsisMode::Trailing));
+            }
+            if let Some(hit) = &row.hit {
+                item = item.subtitle(lit!(format!("{} · {}", row.subtitle, row.meta)));
+                let fragment = |text: String| {
+                    TextWidget::new(lit!(text))
+                        .style(TextStyleRole::Small)
+                        .single_line()
+                };
+                item =
+                    item.label_slot(
+                        VStack::new()
+                            .spacing(4.)
+                            .child(
+                                TextWidget::new(lit!(row.title.clone()))
+                                    .style(TextStyleRole::BodyBold)
+                                    .single_line()
+                                    .overflow(TextOverflow::Ellipsis(EllipsisMode::Trailing))
+                                    .a11y_hidden(),
+                            )
+                            .child(
+                                HStack::new()
+                                    .spacing(0.)
+                                    .child(fragment(hit.before.clone()))
+                                    .child(
+                                        Panel::new()
+                                            .padding(0.)
+                                            .border_width(0.)
+                                            .background(SurfaceRole::AccentSubtle)
+                                            .child(
+                                                fragment(hit.matched.clone())
+                                                    .style(TextStyleRole::SmallBold),
+                                            ),
+                                    )
+                                    .child(Expand::horizontal().child(
+                                        fragment(hit.after.clone()).overflow(
+                                            TextOverflow::Ellipsis(EllipsisMode::Trailing),
+                                        ),
+                                    )),
+                            ),
+                    );
             }
             if row.trashed {
                 item =
@@ -304,21 +353,31 @@ pub fn notes_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl W
             Box::new(item.context_menu(move |_, _| Some(Box::new(note_menu(&vm, id)))))
         },
     )
+    .auto_item_height(64.)
     .activate_on(ActivateOn::SingleClick)
     .reorderable(true)
     .on_activate(move |index, _| {
         if let Some(id) = v.0.notes.with_item(index, |r| r.id) {
-            v.report(v.select_note(Some(id)));
+            v.report(v.activate_note(id));
         }
     })
     .type_ahead_label(|r| r.title.clone());
     let keys = vm.clone();
     let list = list.on_key(move |event, ctx| {
-        let Some(id) = keys.0.note.get() else {
+        let Some(id) = key_selection
+            .selection_signal()
+            .get()
+            .iter()
+            .next()
+            .copied()
+        else {
             return EventResponse::Ignored;
         };
         match key_down(event) {
             Some((Key::F2, _)) => {
+                if keys.0.note.get() != Some(id) {
+                    keys.report(keys.select_note(Some(id)));
+                }
                 keys.0.renaming_note.set(true);
                 EventResponse::Handled
             }
@@ -350,18 +409,30 @@ pub fn notes_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl W
         }
     };
     update();
+    let empty_label = vm.0.query.map(|q| {
+        if q.trim().is_empty() {
+            tr!(empty_folder()).resolve_now()
+        } else {
+            tr!(search_empty()).resolve_now()
+        }
+    });
     let empty = Signal::new(vm.0.notes.is_empty());
     let (u, e, notes) = (update.clone(), empty.clone(), vm.0.notes.clone());
     vm.keep(vm.0.notes.observe_changes(move |_| {
         u();
         e.set(notes.is_empty());
     }));
+    let quick_note = Button::new(tr!(start_note()))
+        .variant(ButtonVariant::Plain)
+        .on_activate_fn(|ctx| ctx.send_intent(Intent::new("note.start")))
+        .visible_when(vm.0.note.map(|id| id.is_some()));
     let new_note = Button::new(tr!(new_note()))
         .variant(ButtonVariant::Ghost)
         .icon(Icon::Plus.widget(), IconLocation::Leading)
         .text_role(TextRole::Accent)
         .enabled(vm.0.folder.map(|id| id.is_some()))
-        .on_activate_fn(|ctx| ctx.send_intent(Intent::new("note.new")));
+        .on_activate_fn(|ctx| ctx.send_intent(Intent::new("note.new")))
+        .visible_when(vm.0.query.map(|q| q.trim().is_empty()));
     Padding::uniform(PANEL_PADDING).child(
         VStack::new()
             .spacing(2.)
@@ -389,9 +460,15 @@ pub fn notes_pane(vm: &SessionVm, selection: KeyedSelectionModel<u64>) -> impl W
             )
             .child(
                 Padding::symmetric(8., 10.)
-                    .child(caption(tr!(empty_folder())))
+                    .child(
+                        TextWidget::new(lit!(""))
+                            .text(empty_label)
+                            .style(TextStyleRole::Small)
+                            .color(TextRole::Secondary),
+                    )
                     .visible_when(empty),
             )
-            .child(Expand::new().child(list)),
+            .child(Expand::new().child(list))
+            .child(quick_note),
     )
 }

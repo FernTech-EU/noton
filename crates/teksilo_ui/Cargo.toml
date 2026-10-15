@@ -38,9 +38,9 @@ mocks = []
 [dependencies]
 # A literal version, deliberately not `{ workspace = true }`: this crate is also
 # compiled from test harnesses whose workspace root does not declare teksilo.
-teksilo = { version = "0.14.0", features = ["automation", "async-std"] }
-teksilo-scene = "0.14.0"
-text-document = "1.12"
+teksilo = { version = "0.18.0", features = ["automation", "async-std"] }
+teksilo-scene = "0.18.0"
+text-document = "1.13"
 
 # Backend
 frontend = { workspace = true }

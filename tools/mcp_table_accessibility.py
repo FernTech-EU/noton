@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Acceptance probe for Teksilo's new table accessibility, in Noton's real UI.
 
-Requires the updated local Teksilo AND text-typeset sources. See
-docs/teksilo-integration.md for the committed-pin limitation.
+Uses the locked crates.io Teksilo and text-typeset releases. See
+docs/teksilo-integration.md for dependency setup.
 """
 import pathlib
 import tempfile

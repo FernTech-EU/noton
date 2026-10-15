@@ -48,12 +48,12 @@ fn search_key(text: &str) -> String {
         .flat_map(char::to_lowercase)
         .collect()
 }
-/// A block's searchable text, normalized once per version of the block.
 struct SearchEntry {
-    /// The stored block's `updated_at`, and the live document's revision.
     stamp: (chrono::DateTime<chrono::Utc>, Option<u64>),
     text: String,
 }
+type SearchOrigin = (Option<EntityId>, Option<EntityId>, bool, usize, bool);
+type BlockFocus = (EntityId, Option<(usize, usize)>);
 /// Whether `name` is a backup of the library `stem` as [`SessionVm::backup`]
 /// names them: `{stem}.{YYYYMMDD}T{HHMMSS}.{mmm}.noton`, and nothing else.
 fn is_backup_of(name: &str, stem: &str) -> bool {
@@ -88,6 +88,7 @@ pub struct Row {
     pub meta: String,
     /// The note holds a sketch.
     pub sketch: bool,
+    pub hit: Option<crate::search::SearchHit>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -165,6 +166,9 @@ pub struct Inner {
     pub folder_trashed: Signal<bool>,
     pub note_trashed: Signal<bool>,
     pub navigation: Signal<usize>,
+    pub navigation_visible: Signal<bool>,
+    search_origin: Cell<Option<SearchOrigin>>,
+    pub focus_block: Cell<Option<BlockFocus>>,
     pub note: Signal<Option<EntityId>>,
     pub folders: ListModel<Row>,
     pub notes: ListModel<Row>,
@@ -302,6 +306,9 @@ impl SessionVm {
             folder_trashed: Signal::new(false),
             note_trashed: Signal::new(false),
             navigation: Signal::new(0),
+            navigation_visible: Signal::new(true),
+            search_origin: Cell::new(None),
+            focus_block: Cell::new(None),
             note: Signal::new(None),
             folders: ListModel::from_vec(vec![]),
             notes: ListModel::from_vec(vec![]),
@@ -434,6 +441,7 @@ impl SessionVm {
                 },
                 meta: live.to_string(),
                 sketch: false,
+                hit: None,
             });
         }
         if !folders.iter().any(|f| Some(f.id) == self.0.folder.get()) {
@@ -457,11 +465,51 @@ impl SessionVm {
                     .into_iter()
                     .filter(|b| show_trash || !b.trashed)
                     .collect();
-                let matched = query.is_empty()
-                    || search_key(&n.title).contains(&query)
-                    || blocks.iter().any(|b| self.block_matches(b, &query));
-                if !matched {
-                    continue;
+                let mut hit = if query.is_empty() {
+                    None
+                } else {
+                    crate::search::hit(&n.title, &query, None, false)
+                };
+                let mut count = hit.as_ref().map_or(0, |h| h.count);
+                if !query.is_empty() {
+                    for block in &blocks {
+                        let text = if block.kind == BlockKind::RichText {
+                            self.search_text(block)?
+                        } else {
+                            format!("{} {} {}", block.label, block.description, block.alt_text)
+                        };
+                        if let Some(found) = crate::search::hit(
+                            &text,
+                            &query,
+                            Some(block.id),
+                            block.kind == BlockKind::RichText,
+                        ) {
+                            count += found.count;
+                            if hit.as_ref().is_none_or(|h| h.block.is_none()) {
+                                hit = Some(found);
+                            }
+                        }
+                        // Rich-text labels and descriptions remain searchable,
+                        // but their offsets must never select document text.
+                        if block.kind == BlockKind::RichText {
+                            let metadata =
+                                format!("{} {} {}", block.label, block.description, block.alt_text);
+                            if let Some(found) =
+                                crate::search::hit(&metadata, &query, Some(block.id), false)
+                            {
+                                count += found.count;
+                                if hit.as_ref().is_none_or(|h| h.block.is_none()) {
+                                    hit = Some(found);
+                                }
+                            }
+                        }
+                    }
+                    if hit.is_none() {
+                        continue;
+                    }
+                    if let Some(h) = &mut hit {
+                        h.count = count;
+                    }
                 }
                 let trashed = n.trashed || f.trashed;
                 let subtitle = if trashed {
@@ -485,12 +533,17 @@ impl SessionVm {
                     title: n.title,
                     trashed,
                     subtitle,
-                    meta: tr!(block_count(count = blocks.len() as i64)).resolve_now(),
+                    meta: if let Some(h) = &hit {
+                        tr!(search_matches(count = h.count as i64)).resolve_now()
+                    } else {
+                        tr!(block_count(count = blocks.len() as i64)).resolve_now()
+                    },
+                    hit,
                     sketch: blocks.iter().any(|b| b.kind == BlockKind::Drawing),
                 });
             }
         }
-        if !notes.iter().any(|n| Some(n.id) == self.0.note.get()) {
+        if query.is_empty() && !notes.iter().any(|n| Some(n.id) == self.0.note.get()) {
             self.select_note(notes.first().map(|r| r.id))?;
         }
         self.0.notes.replace_all(notes);
@@ -521,31 +574,114 @@ impl SessionVm {
             .and_then(|d| d.to_plain_text().ok())
             .unwrap_or_else(|| b.content_djot.clone())
     }
-    /// Whether `query` (already a [`search_key`]) occurs in the block's label,
-    /// description, alt text or text. The normalized text is cached until the
-    /// block or its live document changes, so a keystroke in the search field
-    /// does not normalize the whole library again.
-    fn block_matches(&self, b: &Block, query: &str) -> bool {
-        let live = self
+    fn search_text(&self, block: &Block) -> Result<String> {
+        let revision = self
             .0
             .document_changes
             .borrow()
-            .get(&b.id)
+            .get(&block.id)
             .map(|c| c.revision.load(Ordering::Relaxed));
-        let stamp = (b.updated_at, live);
-        let mut index = self.0.search_index.borrow_mut();
-        if index.get(&b.id).is_none_or(|e| e.stamp != stamp) {
-            let text = [
-                b.label.as_str(),
-                &b.description,
-                &b.alt_text,
-                &self.block_text(b),
-            ]
-            .map(search_key)
-            .join("\n");
-            index.insert(b.id, SearchEntry { stamp, text });
+        let stamp = (block.updated_at, revision);
+        if let Some(entry) = self.0.search_index.borrow().get(&block.id) {
+            if entry.stamp == stamp {
+                return Ok(entry.text.clone());
+            }
         }
-        index.get(&b.id).is_some_and(|e| e.text.contains(query))
+        let doc = self.0.documents.borrow().get(&block.id).cloned();
+        let text = if let Some(doc) = doc {
+            doc.to_plain_text()?
+        } else {
+            let doc = TextDocument::new();
+            doc.set_djot_sync(&block.content_djot)?;
+            doc.to_plain_text()?
+        };
+        self.0.search_index.borrow_mut().insert(
+            block.id,
+            SearchEntry {
+                stamp,
+                text: text.clone(),
+            },
+        );
+        Ok(text)
+    }
+    pub fn search_changed(&self) -> Result<()> {
+        if !self.0.query.get().trim().is_empty() {
+            if self.0.search_origin.get().is_none() {
+                self.0.search_origin.set(Some((
+                    self.0.folder.get(),
+                    self.0.note.get(),
+                    self.0.reading.get(),
+                    self.0.navigation.get(),
+                    self.0.navigation_visible.get(),
+                )));
+            }
+            self.0.navigation_visible.set(true);
+            self.0.navigation.set(1);
+        } else if let Some((folder, note, reading, stage, visible)) = self.0.search_origin.take() {
+            self.0.folder.set(folder);
+            let note = note.filter(|id| self.0.service.note(*id).is_ok_and(|n| !n.trashed));
+            self.select_note(note)?;
+            self.0.reading.set(reading);
+            self.0.navigation.set(stage);
+            self.0.navigation_visible.set(visible);
+        }
+        self.refresh()
+    }
+    pub fn activate_note(&self, id: EntityId) -> Result<()> {
+        let hit = (0..self.0.notes.len()).find_map(|i| {
+            self.0
+                .notes
+                .with_item(i, |r| (r.id == id).then(|| r.hit.clone()))
+                .flatten()
+                .flatten()
+        });
+        self.select_note(Some(id))?;
+        if let Some(hit) = hit {
+            if let Some(block) = hit.block {
+                self.0.selected.set(Some(block));
+                self.0.focus_block.set(Some((block, hit.range)));
+                self.rebuild_page();
+            }
+        }
+        Ok(())
+    }
+    /// One action from an empty library to a focused editor. Existing folders
+    /// and notes keep their explicit creation actions for organization.
+    pub fn start_note(&self) -> Result<()> {
+        self.0.query.set(String::new());
+        self.search_changed()?;
+        self.0.trash.set(false);
+        self.refresh()?;
+        if self.0.folder.get().is_none() {
+            self.new_folder()?;
+        }
+        self.new_note()?;
+        self.start_writing()
+    }
+    pub fn write_at(&self, x: f64, y: f64) -> Result<()> {
+        let note = self.0.note.get().context("Select a note")?;
+        let id = self.0.service.create_block_at(
+            note,
+            BlockKind::RichText,
+            tr!(new_text()).resolve_now(),
+            (x, y),
+            self.page_stack()?,
+        )?;
+        self.0.selected.set(Some(id));
+        self.0.active_block.set(Some(id));
+        self.0.focus_block.set(Some((id, None)));
+        self.changed();
+        self.refresh()?;
+        self.rebuild_page();
+        Ok(())
+    }
+    pub fn start_writing(&self) -> Result<()> {
+        self.insert(BlockKind::RichText)?;
+        if let Some(id) = self.0.active_block.get() {
+            self.0.focus_block.set(Some((id, None)));
+        }
+        self.rebuild_page();
+        Ok(())
     }
     pub fn select_folder(&self, id: EntityId) -> Result<()> {
         if self.0.renaming_folder.get().is_some_and(|r| r != id) {
@@ -558,6 +694,7 @@ impl SessionVm {
         self.refresh()
     }
     pub fn select_note(&self, id: Option<EntityId>) -> Result<()> {
+        self.0.focus_block.set(None);
         if id.is_some() {
             self.0.navigation.set(2);
         }

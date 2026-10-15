@@ -86,3 +86,74 @@ fn search_follows_edited_text() {
     assert!(found("the"), "a changed block is normalized again");
     assert!(!found("cafe"));
 }
+
+#[test]
+fn quick_note_creates_only_the_missing_structure() {
+    let vm = SessionVm::memory().unwrap();
+    vm.start_note().unwrap();
+    let folder = vm.0.folder.get().unwrap();
+    let first = vm.0.note.get().unwrap();
+    let (block, range) = vm.0.focus_block.get().unwrap();
+    assert_eq!(vm.0.service.blocks(first).unwrap()[0].id, block);
+    assert_eq!(range, None);
+    vm.start_note().unwrap();
+    assert_eq!(vm.0.folder.get(), Some(folder));
+    assert_ne!(vm.0.note.get(), Some(first));
+    assert_eq!(vm.0.service.folders().unwrap().len(), 1);
+    assert_eq!(vm.0.service.notes(folder).unwrap().len(), 2);
+}
+
+#[test]
+fn search_keeps_the_original_note_until_activation_and_restores_it() {
+    let vm = SessionVm::memory().unwrap();
+    let first = note_with_blocks(&vm, 1)[0];
+    let original = vm.0.note.get();
+    vm.new_note().unwrap();
+    vm.insert(BlockKind::RichText).unwrap();
+    let other = vm.0.note.get().unwrap();
+    let target = vm.0.active_block.get().unwrap();
+    vm.0.service
+        .flush_text(target, "Before\n\n☕ Café café".into())
+        .unwrap();
+    vm.select_note(original).unwrap();
+    vm.0.reading.set(true);
+    vm.0.navigation_visible.set(false);
+    vm.0.query.set("cafe".into());
+    vm.search_changed().unwrap();
+    assert_eq!(vm.0.note.get(), original);
+    assert!(vm.0.navigation_visible.get());
+    assert_eq!(vm.0.notes.len(), 1);
+    let hit =
+        vm.0.notes
+            .with_item(0, |r| r.hit.clone())
+            .flatten()
+            .unwrap();
+    assert_eq!(hit.block, Some(target));
+    assert_eq!(hit.count, 2);
+    assert_eq!(hit.matched, "Café");
+    vm.activate_note(other).unwrap();
+    assert_eq!(vm.0.note.get(), Some(other));
+    assert_eq!(vm.0.focus_block.get(), Some((target, hit.range)));
+    vm.0.query.set(String::new());
+    vm.search_changed().unwrap();
+    assert_eq!(vm.0.note.get(), original);
+    assert!(vm.0.reading.get());
+    assert!(!vm.0.navigation_visible.get());
+    assert_eq!(vm.0.service.blocks(original.unwrap()).unwrap()[0].id, first);
+}
+
+#[test]
+fn rich_text_metadata_matches_do_not_select_document_offsets() {
+    let vm = SessionVm::memory().unwrap();
+    let blocks = note_with_blocks(&vm, 1);
+    let block = vm.0.service.block(blocks[0]).unwrap();
+    vm.0.query.set(block.label.clone());
+    vm.search_changed().unwrap();
+    let hit =
+        vm.0.notes
+            .with_item(0, |r| r.hit.clone())
+            .flatten()
+            .unwrap();
+    assert_eq!(hit.block, Some(block.id));
+    assert_eq!(hit.range, None);
+}
