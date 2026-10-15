@@ -64,6 +64,7 @@ impl PageView {
 struct WritingCanvas {
     vm: SessionVm,
     scroll: teksilo_scene::SceneScrollView,
+    preserve_pan: Option<(f32, f32)>,
     handlers: Option<teksilo::core::widget_builder::HandlerSet>,
 }
 impl Widget for WritingCanvas {
@@ -97,6 +98,16 @@ impl Widget for WritingCanvas {
         children: &mut [teksilo::core::widget::WidgetPlacement],
         ctx: &LayoutContext,
     ) {
+        if self.vm.0.focus_block.get().is_none() && self.vm.0.focus_in_place.take().is_some() {
+            // Focus can reveal the whole editor before its first paint. Restore
+            // the click's camera before laying out that newly focused frame.
+            if let (Some((x, y)), Some(camera)) =
+                (self.preserve_pan, self.vm.0.camera.borrow().as_ref())
+            {
+                camera.pan_x.set(x);
+                camera.pan_y.set(y);
+            }
+        }
         self.scroll.place_children(bounds, p, children, ctx);
     }
     fn children(&self) -> Vec<WidgetId> {
@@ -230,6 +241,7 @@ impl Widget for FocusEditor {
                 if let Some((target, range)) = vm.0.focus_block.get() {
                     if target == id {
                         vm.0.focus_block.set(None);
+                        let in_place = vm.0.focus_in_place.get() == Some(id);
                         if let Some(handle) = handle {
                             mode.set(CardMode::Editing);
                             handle.focus(ec);
@@ -238,7 +250,7 @@ impl Widget for FocusEditor {
                                 if !handle.reveal_range(ec, start, end) {
                                     handle.reveal_widget(ec);
                                 }
-                            } else {
+                            } else if !in_place {
                                 handle.reveal_widget(ec);
                             }
                         } else {
@@ -899,10 +911,12 @@ fn canvas(
     };
     vm.attach_camera(camera.clone());
     if let Some((id, _)) = vm.0.focus_block.get() {
-        if let Ok(b) = vm.0.service.block(id) {
-            camera.pan_x.set(24. - b.x as f32 * camera.zoom.get());
-            camera.pan_y.set(24. - b.y as f32 * camera.zoom.get());
-            vm.0.fit_pending.set(None);
+        if vm.0.focus_in_place.get() != Some(id) {
+            if let Ok(b) = vm.0.service.block(id) {
+                camera.pan_x.set(24. - b.x as f32 * camera.zoom.get());
+                camera.pan_y.set(24. - b.y as f32 * camera.zoom.get());
+                vm.0.fit_pending.set(None);
+            }
         }
     }
 
@@ -913,24 +927,28 @@ fn canvas(
     let keys = vm.clone();
     let transform = view.view_transform_signal();
     let write = vm.clone();
-    let cam = camera.clone();
     let handlers =
-        teksilo::core::widget_builder::HandlerSet::new().on_double_tap(move |event, _| {
-            if model
-                .item_at_in_view(event.position, transform.get())
-                .is_none()
+        teksilo::core::widget_builder::HandlerSet::new().on_double_tap(move |_event, ctx| {
+            let Some(position) = ctx.tree_pointer_position() else {
+                return;
+            };
+            if model.item_at_in_view(position, transform.get()).is_none()
                 && !write.0.note_trashed.get()
             {
-                let zoom = cam.zoom.get().max(0.01);
-                write.report(write.write_at(
-                    ((event.position.x - cam.pan_x.get()) / zoom) as f64,
-                    ((event.position.y - cam.pan_y.get()) / zoom) as f64,
-                ));
+                if let Some(inverse) = transform.get().inverse() {
+                    let point = inverse.apply_point(position);
+                    write.report(write.write_at(point.x as f64, point.y as f64));
+                }
             }
         });
     let view = WritingCanvas {
         vm: vm.clone(),
         scroll: view.with_scroll_bars(),
+        preserve_pan: vm
+            .0
+            .focus_in_place
+            .get()
+            .map(|_| (camera.pan_x.get(), camera.pan_y.get())),
         handlers: Some(handlers),
     };
     let empty = blocks.is_empty();

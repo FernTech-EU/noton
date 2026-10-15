@@ -319,9 +319,12 @@ pub fn note_view(vm: &SessionVm, ctx: &mut BuildContext) -> impl Widget + 'stati
                     VStack::new()
                         .child(header(vm, ctx))
                         .child(
-                            crate::widgets::fill(SurfaceRole::Raised)
-                                .child(crate::page::format_bar::format_bar(vm))
-                                .visible_when(editing),
+                            // Keep the canvas stationary when text gains or loses focus.
+                            FixedSize::new().height(42.).child(
+                                crate::widgets::fill(SurfaceRole::Raised)
+                                    .child(crate::page::format_bar::format_bar(vm))
+                                    .visible_when(editing),
+                            ),
                         )
                         .child(
                             crate::widgets::fill(SurfaceRole::Raised)

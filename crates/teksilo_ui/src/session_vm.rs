@@ -170,6 +170,8 @@ pub struct Inner {
     search_origin: Cell<Option<SearchOrigin>>,
     pub focus_block: Cell<Option<BlockFocus>>,
     pub focus_frame: Cell<Option<EntityId>>,
+    /// Focus text at its existing canvas position, without camera/reveal scrolling.
+    pub focus_in_place: Cell<Option<EntityId>>,
     pub note: Signal<Option<EntityId>>,
     pub folders: ListModel<Row>,
     pub notes: ListModel<Row>,
@@ -311,6 +313,7 @@ impl SessionVm {
             search_origin: Cell::new(None),
             focus_block: Cell::new(None),
             focus_frame: Cell::new(None),
+            focus_in_place: Cell::new(None),
             note: Signal::new(None),
             folders: ListModel::from_vec(vec![]),
             notes: ListModel::from_vec(vec![]),
@@ -672,6 +675,11 @@ impl SessionVm {
         self.0.selected.set(Some(id));
         self.0.active_block.set(Some(id));
         self.0.focus_block.set(Some((id, None)));
+        self.0.focus_in_place.set(Some(id));
+        self.0.focus_frame.set(None);
+        self.0.fit_pending.set(None);
+        self.0.fit_waiting.set(false);
+        self.0.fit_at.set(None);
         self.changed();
         self.refresh()?;
         self.rebuild_page();
@@ -699,6 +707,7 @@ impl SessionVm {
     pub fn select_note(&self, id: Option<EntityId>) -> Result<()> {
         self.0.focus_block.set(None);
         self.0.focus_frame.set(None);
+        self.0.focus_in_place.set(None);
         if id.is_some() {
             self.0.navigation.set(2);
         }

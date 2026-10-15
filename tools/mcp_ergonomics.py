@@ -85,16 +85,35 @@ def navigation(c, path):
     assert any(n['role'] == 'ListBoxOption' for n in c.nodes())
 
 
-def blank_canvas(c, path):
+def blank_canvas(c, path, idle=False, zoom=False, edge=False):
     action(c, 'Start a note')
     focused_editor(c)
-    c.call('inject_pointer', {'action': 'double_click', 'x': 1000, 'y': 450})
+    if idle:
+        c.execute('InjectKey', key='Escape')
+    if zoom:
+        action(c, 'Zoom out')
+    save(c)
+    before = [n['bounds'] for n in c.nodes()
+              if n['role'] == 'Group' and n.get('label') == 'Text block'][0]
+    original = records(path, 'block')[0]
+    scale = before['width'] / original['geometry']['width']
+    x, y = (1000, 650) if edge else (800, 450)
+    expected = {axis: original['geometry'][axis] + (point-before[axis])/scale
+                for axis, point in [('x', x), ('y', y)]}
+    c.call('inject_pointer', {'action': 'double_click', 'x': x, 'y': y})
     focused_editor(c)
     c.execute('InjectKey', key='b', text='b')
     save(c)
     blocks = records(path, 'block')
     assert len(blocks) == 2, blocks
-    assert any('b' in b['content']['djot'] for b in blocks), blocks
+    created = next(b for b in blocks if b['uid'] != original['uid'])
+    assert 'b' in created['content']['djot'], created
+    frames = [n['bounds'] for n in c.nodes()
+              if n['role'] == 'Group' and n.get('label') == 'Text block']
+    for axis, point in [('x', x), ('y', y)]:
+        assert abs(created['geometry'][axis]-expected[axis]) < 1, (created, expected)
+        assert abs(frames[0][axis]-before[axis]) < 1, (before, frames)
+        assert abs(frames[1][axis]-point) < 1, (point, frames)
     c.capture('blank-canvas-writing')
 
 
@@ -152,6 +171,9 @@ def main():
         ('quick-write-narrow', quick_write, ('--window-size', '600x700')),
         ('navigation-toggle', navigation, ()),
         ('blank-canvas', blank_canvas, ()),
+        ('blank-canvas-edge', lambda c, p: blank_canvas(c, p, edge=True), ()),
+        ('blank-canvas-idle', lambda c, p: blank_canvas(c, p, idle=True), ()),
+        ('blank-canvas-zoom', lambda c, p: blank_canvas(c, p, zoom=True), ()),
         ('empty-note', empty_note, ()),
         ('match-aware-search', search, ()),
     ]:
