@@ -312,26 +312,30 @@ pub fn note_view(vm: &SessionVm, ctx: &mut BuildContext) -> impl Widget + 'stati
                     .on_activate_fn(|ctx| ctx.send_intent(Intent::new("note.start"))),
             ),
     );
-    crate::widgets::fill(SurfaceRole::Content).child(
-        ZStack::new()
-            .child(
-                VStack::new()
-                    .child(header(vm, ctx))
-                    .child(
-                        crate::widgets::fill(SurfaceRole::Raised)
-                            .child(crate::page::format_bar::format_bar(vm))
-                            .visible_when(editing),
-                    )
-                    .child(
-                        crate::widgets::fill(SurfaceRole::Raised)
-                            .child(crate::page::ink::drawing_bar(vm))
-                            .visible_when(drawing),
-                    )
-                    .child(Divider::horizontal())
-                    .child(banners(vm))
-                    .child(Expand::new().child(PageView::new(vm.clone())))
-                    .visible_when(has_note.clone()),
-            )
-            .child(empty.visible_when(has_note.map(|h| !h))),
+    crate::image_drop::target(
+        crate::widgets::fill(SurfaceRole::Content).child(
+            ZStack::new()
+                .child(
+                    VStack::new()
+                        .child(header(vm, ctx))
+                        .child(
+                            crate::widgets::fill(SurfaceRole::Raised)
+                                .child(crate::page::format_bar::format_bar(vm))
+                                .visible_when(editing),
+                        )
+                        .child(
+                            crate::widgets::fill(SurfaceRole::Raised)
+                                .child(crate::page::ink::drawing_bar(vm))
+                                .visible_when(drawing),
+                        )
+                        .child(Divider::horizontal())
+                        .child(banners(vm))
+                        .child(Expand::new().child(PageView::new(vm.clone())))
+                        .visible_when(has_note.clone()),
+                )
+                .child(empty.visible_when(has_note.map(|h| !h))),
+        ),
+        vm,
+        None,
     )
 }

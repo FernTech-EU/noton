@@ -16,6 +16,12 @@ offers **Start writing**; double-click blank canvas space to add text there.
 excerpts and occurrence counts; activating a result selects its first matching
 text, and clearing the query restores the previous note and view.
 
+Drop PNG, JPEG or WebP images from a file manager onto a note to create separate
+image frames. Drag their headers to move them and use the edge/corner handles to
+resize. Delete removes the selected frame; Ctrl+Z restores it. Images are embedded
+in the library. Drops carrying image bytes are also supported; URL-only browser
+drags are not downloaded.
+
 For dependency versions and test results,
 see [Teksilo integration](docs/teksilo-integration.md).
 See the [architecture dossier](docs/README.md) for the design and acceptance criteria.

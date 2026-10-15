@@ -178,3 +178,5 @@ fn run_app() -> anyhow::Result<()> {
     shutdown.shutdown();
     Ok(())
 }
+
+pub mod image_drop;

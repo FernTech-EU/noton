@@ -567,10 +567,31 @@ impl LibraryService {
         height: f64,
         stack: u64,
     ) -> Result<EntityId> {
+        self.insert_image_at(note, asset, (width, height), None, stack)
+    }
+    /// Insert an independently movable image frame, optionally at a drop point.
+    /// Position belongs to the creation command, so undo removes the whole frame.
+    pub fn insert_image_at(
+        &self,
+        note: EntityId,
+        asset: &format::Asset,
+        dimensions: (f64, f64),
+        position: Option<(f64, f64)>,
+        stack: u64,
+    ) -> Result<EntityId> {
         ensure!(!self.note(note)?.trashed, "Note is in trash");
-        let width_on_page = width.clamp(80., 480.);
-        let height_on_page = (height * width_on_page / width).max(40.);
-        let (x, y) = self.free_spot(note, width_on_page, height_on_page)?;
+        let (width, height) = dimensions;
+        ensure!(
+            width.is_finite() && height.is_finite() && width > 0. && height > 0.,
+            "Invalid image dimensions"
+        );
+        let scale = (480. / width).min(360. / height).min(1.);
+        let width_on_page = (width * scale).max(80.);
+        let height_on_page = (height * scale).max(80.);
+        let (x, y) = match position {
+            Some(point) => point,
+            None => self.free_spot(note, width_on_page, height_on_page)?,
+        };
         let geometry = format::Geometry {
             x,
             y,

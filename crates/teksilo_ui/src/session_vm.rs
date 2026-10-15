@@ -169,6 +169,7 @@ pub struct Inner {
     pub navigation_visible: Signal<bool>,
     search_origin: Cell<Option<SearchOrigin>>,
     pub focus_block: Cell<Option<BlockFocus>>,
+    pub focus_frame: Cell<Option<EntityId>>,
     pub note: Signal<Option<EntityId>>,
     pub folders: ListModel<Row>,
     pub notes: ListModel<Row>,
@@ -309,6 +310,7 @@ impl SessionVm {
             navigation_visible: Signal::new(true),
             search_origin: Cell::new(None),
             focus_block: Cell::new(None),
+            focus_frame: Cell::new(None),
             note: Signal::new(None),
             folders: ListModel::from_vec(vec![]),
             notes: ListModel::from_vec(vec![]),
@@ -677,6 +679,7 @@ impl SessionVm {
     }
     pub fn start_writing(&self) -> Result<()> {
         self.insert(BlockKind::RichText)?;
+        self.0.focus_frame.set(None);
         if let Some(id) = self.0.active_block.get() {
             self.0.focus_block.set(Some((id, None)));
         }
@@ -695,6 +698,7 @@ impl SessionVm {
     }
     pub fn select_note(&self, id: Option<EntityId>) -> Result<()> {
         self.0.focus_block.set(None);
+        self.0.focus_frame.set(None);
         if id.is_some() {
             self.0.navigation.set(2);
         }
@@ -774,6 +778,7 @@ impl SessionVm {
         self.0.edit.claim_structure(false);
         self.0.active_block.set(Some(id));
         self.0.selected.set(Some(id));
+        self.0.focus_frame.set(Some(id));
         self.changed();
         self.refresh()?;
         self.rebuild_page();
@@ -1179,6 +1184,20 @@ impl SessionVm {
             "Image exceeds 100 MiB"
         );
         let bytes = std::fs::read(path)?;
+        let name = path
+            .file_name()
+            .context("Missing image name")?
+            .to_string_lossy()
+            .into_owned();
+        self.import_image_bytes(name, bytes, None).map(|_| ())
+    }
+    pub fn import_image_bytes(
+        &self,
+        name: String,
+        bytes: Vec<u8>,
+        position: Option<(f64, f64)>,
+    ) -> Result<EntityId> {
+        anyhow::ensure!(bytes.len() <= 100 * 1024 * 1024, "Image exceeds 100 MiB");
         let image = teksilo::canvas::RasterIcon::decode(&bytes)?;
         anyhow::ensure!(
             image.width() <= 16000 && image.height() <= 16000,
@@ -1188,20 +1207,32 @@ impl SessionVm {
             .context("Unsupported image format")?
             .mime_type()
             .to_owned();
-        let name = path
-            .file_name()
-            .context("Missing image name")?
-            .to_string_lossy()
-            .into_owned();
+        anyhow::ensure!(
+            !self.0.trash.get() && !self.0.note_trashed.get(),
+            "Cannot add images in trash"
+        );
+        // Decode before creating anything: a rejected drop leaves no empty note.
+        if self.0.note.get().is_none() {
+            if self.0.folder.get().is_none() {
+                self.new_folder()?;
+            }
+            self.new_note()?;
+        }
         let asset = Asset::new(name, mime, bytes);
         let note = self.0.note.get().context("Select a note")?;
-        self.0.service.insert_image(
+        let id = self.0.service.insert_image_at(
             note,
             &asset,
-            image.width() as f64,
-            image.height() as f64,
+            (image.width() as f64, image.height() as f64),
+            position,
             self.page_stack()?,
         )?;
+        self.0.editing.set(None);
+        self.0.drawing.set(None);
+        self.0.active_text.set(None);
+        self.0.selected.set(Some(id));
+        self.0.active_block.set(Some(id));
+        self.0.focus_frame.set(Some(id));
         self.claim_page();
         self.0
             .images
@@ -1211,7 +1242,7 @@ impl SessionVm {
         self.changed();
         self.refresh()?;
         self.rebuild_page();
-        Ok(())
+        Ok(id)
     }
     pub fn export_note(&self, path: &std::path::Path, html: bool) -> Result<()> {
         self.flush()?;

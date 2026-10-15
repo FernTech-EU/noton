@@ -62,12 +62,26 @@ impl PageView {
 /// Attach the blank-canvas gesture to the scene itself, inside its scroll bars.
 #[derive(Debug)]
 struct WritingCanvas {
+    vm: SessionVm,
     scroll: teksilo_scene::SceneScrollView,
     handlers: Option<teksilo::core::widget_builder::HandlerSet>,
 }
 impl Widget for WritingCanvas {
     fn build(&mut self, ctx: &mut BuildContext) -> Vec<WidgetId> {
         let children = self.scroll.build(ctx);
+        if let Some(scene) = children.first().copied() {
+            let vm = self.vm.clone();
+            ctx.run_after_mount(move |ec| {
+                if vm
+                    .0
+                    .focus_frame
+                    .take()
+                    .is_some_and(|id| vm.0.selected.get() == Some(id))
+                {
+                    ec.request_focus(scene);
+                }
+            });
+        }
         if let (Some(scene), Some(handlers)) = (children.first(), self.handlers.take()) {
             ctx.apply_handlers(*scene, handlers);
         }
@@ -769,7 +783,10 @@ fn canvas(
     let v = vm.clone();
     let m = map.clone();
     model.set_edit_sink(move |record| {
-        if record.source != ChangeSource::User
+        // Teksilo 0.18 SceneCard header drags emit Programmatic/Record,
+        // while transform handles emit User/Record. Both are committed frame
+        // edits. Our own geometry synchronization always uses Ignore.
+        if record.source == ChangeSource::Remote
             || record.history == HistoryMode::Ignore
             || record.ephemeral
         {
@@ -912,6 +929,7 @@ fn canvas(
             }
         });
     let view = WritingCanvas {
+        vm: vm.clone(),
         scroll: view.with_scroll_bars(),
         handlers: Some(handlers),
     };
@@ -1088,7 +1106,12 @@ impl Widget for PageView {
             .filter_map(|b| self.vm.0.service.image_asset(b.id).ok())
             .collect();
         self.vm.keep_images(&shown);
-        let root = ctx.add_boxed(widget);
+        let camera = if self.vm.0.reading.get() {
+            None
+        } else {
+            self.vm.0.camera.borrow().clone()
+        };
+        let root = ctx.add(crate::image_drop::target(widget, &self.vm, camera));
         self.root = Some(root);
         vec![root]
     }

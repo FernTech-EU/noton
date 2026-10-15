@@ -50,3 +50,31 @@ A passing table probe does not certify native Orca, NVDA or VoiceOver behavior.
 See [the October update and project review](review-2026-10-15.md) for results and
 open findings, including the registry verification follow-up. The
 [September user-story and visual audit](ui-audit.md) is historical coverage.
+
+## Image drops and frame controls
+
+`cargo test -p noton-teksilo-ui --test image_drop --locked` exercises the native
+external-drag entry points on the production widget tree. Coverage includes
+Wayland-style advertised formats followed by file payloads, multiple independent
+frames, zoom/pan coordinates, raw image data, empty-library creation, persistence,
+undo, invalid data and selected-frame Delete. It does not simulate dragging from
+a separate file-manager process through the operating system.
+
+For native pointer/keyboard checks, generate a disposable fixture and run:
+
+```sh
+cargo run -p noton-teksilo-ui --example image_drop_fixture --locked -- /tmp/image-drop-fixture.noton
+PATH="$PWD/target/automation/bin:$PATH" python3 tools/mcp_image_frames.py target/debug/noton /tmp/image-drop-fixture.noton /tmp/image-frame-audit
+```
+
+The native script verifies header dragging, resize handles, persisted geometry,
+Delete and undo, immediate sketch deletion, and text deletion versus frame deletion.
+It copies the fixture before making changes. Teksilo 0.18 header drags produce
+Programmatic/Record transactions; Noton records these alongside User/Record
+transforms. App-driven geometry synchronization uses Ignore and remains excluded.
+
+Verification for this change: 178 workspace tests and 26 mock tests passed, with
+three pre-existing ignored doctests. Strict real/mock Clippy, formatting and locale
+parity passed. Smoke, all 17 existing stories, all six native ergonomics scenarios,
+and the new native frame-control script passed. Native selected and resized image
+captures were visually inspected. Evidence is in `target/audit-image-drop/`.
